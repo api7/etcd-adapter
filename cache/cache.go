@@ -15,22 +15,31 @@
 
 package cache
 
-import "errors"
-
-var (
-	// ErrObjectNotFound means the target is not found from the cache.
-	ErrObjectNotFound = errors.New("object not found")
-)
+// Item will be used as the key and value type of the cache.
+// As the strict partial order is required for the cache solutions.
+type Item interface {
+	Less(Item) bool
+}
 
 // Cache groups all required behaviors that the cache implementations required
-// to support the etcd-adapter.
-// Currently, the key type is always string.
+// to support the etcd-adapter. Note this cache interface is special as it doesn't
+// have the key or value definitions. The key and value are the object itself as the
+// object implements the Item interface so it's self-contained for the partial order.
 type Cache interface {
-	// GetSingle accepts a key and find the object from the cache.
-	// Note if the object is missing, the second return value will
-	// be ErrObjectNotFound.
-	GetSingle(string) (interface{}, error)
-	// GetRange accepts the start key and end key, it will return all objects
-	// which key is in the range of this section.
-	GetRange(string, string) ([]interface{}, error)
+	// Get accepts a key and find the object from the cache.
+	// key might not be totally complete but should have enough clues to
+	// decide its partial order.
+	// It returns nil if then object not found.
+	Get(key Item) Item
+	// Range accepts the startKey and endKey, it will return all objects
+	// which key is in the range of this section (both sides inclusive).
+	// startKey and endKey might not be totally complete but should have enough clues to
+	// decide their partial orders.
+	// Note both the startKey and endKey should not be nil or the program will
+	// panic.
+	Range(startKey Item, endKey Item) []Item
+	// Put inserts or updates an object.
+	Put(object Item)
+	// List lists all objects in the cache.
+	List() []Item
 }

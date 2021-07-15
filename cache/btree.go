@@ -23,19 +23,77 @@ import (
 
 type btreeCache struct {
 	sync.RWMutex
-
-	deepcopy bool
 	tree *btree.BTree
 }
 
-// NewBTreeCache returns a Cache interface which was implemented with
-// the b-tree. Note this implementation is thread-safe.
-func NewBTreeCache(deepcopy bool) (Cache, error) {
-	return &btreeCache{
-		deepcopy: deepcopy,
-		tree:     btree.New(32),
-	}, nil
+// item is the wrapper of user object so that we can implement the
+// btree.Item interface.
+type item struct {
+	userOjbect Item
 }
 
-func (b *btreeCache) GetSingle(key string) (interface{}, error) {
+func (i *item) Less(j btree.Item) bool {
+	return i.userOjbect.Less(j.(*item).userOjbect)
+}
+
+// NewBTreeCache returns a Cache interface which was implemented with
+// the b-tree.
+// Note this implementation is thread-safe. So feel free to use it among
+// different goroutines.
+func NewBTreeCache() Cache {
+	return &btreeCache{
+		tree: btree.New(32),
+	}
+}
+
+func (b *btreeCache) Get(key Item) Item {
+	b.RLock()
+	defer b.RUnlock()
+
+	// TODO: sync.Pool for item?
+	v := b.tree.Get(&item{userOjbect: key})
+	if v == nil {
+		return nil
+	}
+	return v.(*item).userOjbect
+}
+
+func (b *btreeCache) Range(startKey, endKey Item) []Item {
+	if startKey == nil || endKey == nil {
+		panic("startKey or endKey is nil")
+	}
+	b.RLock()
+	defer b.RUnlock()
+
+	pivot := &item{
+		userOjbect: startKey,
+	}
+	last := &item{
+		userOjbect: endKey,
+	}
+	var items []Item
+	b.tree.AscendGreaterOrEqual(pivot, func(curr btree.Item) bool {
+		if !last.Less(curr) {
+			items = append(items, curr.(*item).userOjbect)
+			return true
+		}
+		return false
+	})
+	return items
+}
+
+func (b *btreeCache) Put(object Item) {
+	oi := &item{
+		userOjbect: object,
+	}
+	b.tree.ReplaceOrInsert(oi)
+}
+
+func (b *btreeCache) List() []Item {
+	items := make([]Item, 0, b.tree.Len())
+	b.tree.Ascend(func(i btree.Item) bool {
+		items = append(items, i.(*item).userOjbect)
+		return true
+	})
+	return items
 }
