@@ -2,6 +2,7 @@ package etcdadapter
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/api7/etcd-adapter/cache"
 )
@@ -18,6 +19,13 @@ const (
 	EventDelete
 )
 
+type cacheItem struct {
+	cache.Item
+
+	createRevision int64
+	modRevision    int64
+}
+
 // Event contains a bunch of entities and the type of event.
 type Event struct {
 	// Item is the slice of event entites.
@@ -33,6 +41,8 @@ type Adapter interface {
 }
 
 type adapter struct {
+	revision int64
+
 	eventsCh chan *Event
 	cache    cache.Cache
 }
@@ -56,16 +66,38 @@ func (a *adapter) watchEvents(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case ev := <-a.eventsCh:
-			for _, item := range ev.Items {
+			for _, it := range ev.Items {
+				rev := a.incrRevision()
+				ci := &cacheItem{
+					Item:        it,
+					modRevision: rev,
+				}
 				switch ev.Type {
 				case EventAdd:
-					a.cache.Put(item)
+					ci.createRevision = rev
+					a.cache.Put(ci)
 				case EventUpdate:
-					a.cache.Put(item)
+					if old := a.cache.Get(it); old != nil {
+						ci.createRevision = old.(*cacheItem).createRevision
+						a.cache.Put(ci)
+					}
 				case EventDelete:
-					a.cache.Delete(item)
+					if old := a.cache.Get(it); old != nil {
+						ci.createRevision = old.(*cacheItem).createRevision
+						a.cache.Delete(ci)
+					}
 				}
+				// TODO pass ci to etcd server.
 			}
+		}
+	}
+}
+
+func (a *adapter) incrRevision() int64 {
+	old := atomic.LoadInt64(&a.revision)
+	for {
+		if atomic.CompareAndSwapInt64(&a.revision, old, old+1) {
+			return old + 1
 		}
 	}
 }
