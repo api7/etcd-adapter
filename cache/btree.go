@@ -97,3 +97,10 @@ func (b *btreeCache) List() []Item {
 	})
 	return items
 }
+
+func (b *btreeCache) Delete(object Item) {
+	oi := &item{
+		userOjbect: object,
+	}
+	b.tree.Delete(oi)
+}

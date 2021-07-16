@@ -127,6 +127,19 @@ func TestBTreeCacheList(t *testing.T) {
 	})
 }
 
+func TestBTreeCacheDelete(t *testing.T) {
+	t.Parallel()
+	t.Run("sub-test 1", func(t *testing.T) {
+		t.Parallel()
+		c := NewBTreeCache()
+		c.Put(mystring("aa"))
+		item := c.Get(mystring("aa")).(mystring)
+		assert.Equal(t, mystring("aa"), item, "checking item")
+		c.Delete(mystring("aa"))
+		assert.Nil(t, c.Get(mystring("aa")), "checking the item after deleting it")
+	})
+}
+
 func BenchmarkBTreeCacheGet(b *testing.B) {
 	cases := []struct {
 		name        string
@@ -379,6 +392,58 @@ func BenchmarkBTreeCacheList(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < 1000; i++ {
 				c.List()
+			}
+		})
+	}
+}
+
+func BenchmarkBTreeCacheDelete(b *testing.B) {
+	cases := []struct {
+		name        string
+		prepareData func() []mystring
+	}{
+		{
+			name: "100 items",
+			prepareData: func() []mystring {
+				var outputs []mystring
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, mystring(generateString(i*3+1)))
+				}
+				return outputs
+			},
+		},
+		{
+			name: "5000 items",
+			prepareData: func() []mystring {
+				var outputs []mystring
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, mystring(generateString(i*3+1)))
+				}
+				return outputs
+			},
+		},
+		{
+			name: "20000 items",
+			prepareData: func() []mystring {
+				var outputs []mystring
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, mystring(generateString(i*3+1)))
+				}
+				return outputs
+			},
+		},
+	}
+	for _, bc := range cases {
+		bc := bc
+		b.Run(bc.name, func(b *testing.B) {
+			data := bc.prepareData()
+			c := NewBTreeCache()
+			for _, item := range data {
+				c.Put(item)
+			}
+			b.ResetTimer()
+			for _, item := range data {
+				c.Delete(item)
 			}
 		})
 	}

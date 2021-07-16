@@ -42,4 +42,7 @@ type Cache interface {
 	Put(object Item)
 	// List lists all objects in the cache.
 	List() []Item
+	// Delete deletes the object from the cache, the given object doesn't have to
+	// be totally complete but it should have enough items to keep the partial order.
+	Delete(object Item)
 }
