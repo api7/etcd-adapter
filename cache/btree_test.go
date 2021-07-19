@@ -40,8 +40,12 @@ func generateString(n int) string {
 
 type mystring string
 
-func (s mystring) Less(t Item) bool {
-	return s < t.(mystring)
+func (s mystring) Key() string {
+	return string(s)
+}
+
+func (s mystring) Marshal() ([]byte, error) {
+	return []byte(s), nil
 }
 
 func TestBTreeCacheGet(t *testing.T) {
@@ -77,7 +81,7 @@ func TestBTreeRange(t *testing.T) {
 		c.Put(mystring("cc"))
 
 		// most left
-		items := c.Range(mystring("0"), mystring("a"))
+		items := c.Range(mystring("0"), mystring("aa"))
 		assert.Len(t, items, 1, "checking number of items")
 		assert.Equal(t, mystring("a"), items[0].(mystring), "checking item")
 
@@ -257,7 +261,7 @@ func BenchmarkBTreeCacheRange(b *testing.B) {
 			},
 			prepareRange: func(seed []mystring) ([]mystring, []mystring) {
 				sort.Slice(seed, func(i, j int) bool {
-					return seed[i].Less(seed[j])
+					return seed[i].Key() < seed[j].Key()
 				})
 				startPos := make([]mystring, 0, len(seed))
 				endPos := make([]mystring, 0, len(seed))
@@ -284,7 +288,7 @@ func BenchmarkBTreeCacheRange(b *testing.B) {
 			},
 			prepareRange: func(seed []mystring) ([]mystring, []mystring) {
 				sort.Slice(seed, func(i, j int) bool {
-					return seed[i].Less(seed[j])
+					return seed[i].Key() < seed[j].Key()
 				})
 				startPos := make([]mystring, 0, len(seed))
 				endPos := make([]mystring, 0, len(seed))
@@ -311,7 +315,7 @@ func BenchmarkBTreeCacheRange(b *testing.B) {
 			},
 			prepareRange: func(seed []mystring) ([]mystring, []mystring) {
 				sort.Slice(seed, func(i, j int) bool {
-					return seed[i].Less(seed[j])
+					return seed[i].Key() < seed[j].Key()
 				})
 				startPos := make([]mystring, 0, len(seed))
 				endPos := make([]mystring, 0, len(seed))

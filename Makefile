@@ -14,10 +14,13 @@
 #
 
 test:
-	go test ./...
+	@go test ./...
 
 bench:
-	go test -bench '^Benchmark' ./...
+	@go test -bench '^Benchmark' ./...
 
 gofmt:
-	find . -name "*.go" | xargs gofmt -w
+	@find . -name "*.go" | xargs gofmt -w
+
+lint:
+	@golangci-lint run

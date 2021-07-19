@@ -16,9 +16,13 @@
 package cache
 
 // Item will be used as the key and value type of the cache.
-// As the strict partial order is required for the cache solutions.
 type Item interface {
-	Less(Item) bool
+	// Key returns the unique identical key for this item.
+	// Key will be used to decide the partial order. Currently
+	// it's string type and cannot be changed.
+	Key() string
+	// Marshal marshals the item.
+	Marshal() ([]byte, error)
 }
 
 // Cache groups all required behaviors that the cache implementations required
@@ -32,7 +36,7 @@ type Cache interface {
 	// It returns nil if then object not found.
 	Get(key Item) Item
 	// Range accepts the startKey and endKey, it will return all objects
-	// which key is in the range of this section (both sides inclusive).
+	// which key is in the range of this section (left side inclusive while right side is exclusive).
 	// startKey and endKey might not be totally complete but should have enough clues to
 	// decide their partial orders.
 	// Note both the startKey and endKey should not be nil or the program will

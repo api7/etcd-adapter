@@ -33,7 +33,7 @@ type item struct {
 }
 
 func (i *item) Less(j btree.Item) bool {
-	return i.userOjbect.Less(j.(*item).userOjbect)
+	return i.userOjbect.Key() < j.(*item).userOjbect.Key()
 }
 
 // NewBTreeCache returns a Cache interface which was implemented with
@@ -73,7 +73,7 @@ func (b *btreeCache) Range(startKey, endKey Item) []Item {
 	}
 	var items []Item
 	b.tree.AscendGreaterOrEqual(pivot, func(curr btree.Item) bool {
-		if !last.Less(curr) {
+		if curr.Less(last) {
 			items = append(items, curr.(*item).userOjbect)
 			return true
 		}
