@@ -25,6 +25,7 @@ import (
 	gatewayruntime "github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/soheilhy/cmux"
 	"github.com/tmc/grpc-websocket-proxy/wsproxy"
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	etcdservergw "go.etcd.io/etcd/api/v3/etcdserverpb/gw"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -51,8 +52,8 @@ func (a *adapter) Serve(ctx context.Context, l net.Listener) error {
 		grpc.KeepaliveParams(kp),
 	)
 	a.grpcSrv = grpcSrv
-	//etcdserverpb.RegisterKVServer(grpcSrv, a)
-	//etcdserverpb.RegisterWatchServer(grpcSrv, a)
+	etcdserverpb.RegisterKVServer(grpcSrv, a)
+	etcdserverpb.RegisterWatchServer(grpcSrv, a)
 	if gwmux, err := a.registerGateway(l.Addr().String()); err != nil {
 		return err
 	} else {

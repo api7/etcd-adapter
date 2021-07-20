@@ -4,8 +4,10 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"sync"
 	"sync/atomic"
 
+	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
@@ -90,6 +92,12 @@ type adapter struct {
 
 	eventsCh chan *Event
 	cache    cache.Cache
+
+	mu       sync.RWMutex
+	watchers watcherGroup
+
+	watcherCancelMu sync.Mutex
+	watcherCancel   map[int64]func() bool
 }
 
 type AdapterOptions struct {
@@ -99,8 +107,10 @@ type AdapterOptions struct {
 // NewEtcdAdapter new an etcd adapter instance.
 func NewEtcdAdapter(opts *AdapterOptions) Adapter {
 	a := &adapter{
-		eventsCh: make(chan *Event),
-		cache:    cache.NewBTreeCache(),
+		eventsCh:      make(chan *Event),
+		cache:         cache.NewBTreeCache(),
+		watchers:      newWatcherGroup(),
+		watcherCancel: make(map[int64]func() bool),
 	}
 	if opts != nil && opts.logger != nil {
 		a.logger = opts.logger
@@ -158,9 +168,43 @@ func (a *adapter) watchEvents(ctx context.Context) {
 						)
 					}
 				}
-				// TODO pass ci to etcd server.
+
+				a.sendEvent(ci, ev.Type)
 			}
 		}
+	}
+}
+
+func (a *adapter) sendEvent(ci *cacheItem, typ EventType) {
+	key := ci.Key()
+	value, err := ci.Marshal()
+	if err != nil {
+		a.logger.Error("failed to marshal item, ignore it",
+			zap.Error(err),
+			zap.Object("item", ci),
+		)
+		return
+	}
+	event := &mvccpb.Event{
+		Kv: &mvccpb.KeyValue{
+			Key:            []byte(key),
+			CreateRevision: ci.createRevision,
+			ModRevision:    ci.modRevision,
+			Value:          value,
+		},
+	}
+	switch typ {
+	case EventAdd, EventUpdate:
+		event.Type = mvccpb.PUT
+	case EventDelete:
+		event.Type = mvccpb.DELETE
+	}
+
+	ws := a.watchers.watcherSetByKey(ci.Key())
+	for w := range ws {
+		go func(w *watcher) {
+			w.eventCh <- event
+		}(w)
 	}
 }
 

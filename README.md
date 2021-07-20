@@ -29,3 +29,15 @@ Features of Range API defined in [RangeRequest](https://github.com/etcd-io/etcd/
 ### Put
 
 All related features about `PutRequest` are not yet supported.
+
+### DeleteRange
+
+Not yet Implemented.
+
+### Txn
+
+Not yet implemented.
+
+### Compact
+
+Not yet implemented.

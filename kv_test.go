@@ -19,13 +19,10 @@ import (
 	"context"
 	"testing"
 
-	"go.etcd.io/etcd/api/v3/mvccpb"
-
 	"github.com/api7/etcd-adapter/cache"
-
-	"go.etcd.io/etcd/api/v3/etcdserverpb"
-
 	"github.com/stretchr/testify/assert"
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.uber.org/zap"
 )
 

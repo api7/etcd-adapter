@@ -13,21 +13,6 @@
 // limitations under the License.
 //
 
-// Copyright api7.ai
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-
 package etcdadapter
 
 import (
@@ -35,10 +20,9 @@ import (
 	"sync/atomic"
 
 	"github.com/api7/etcd-adapter/cache"
-
-	"go.etcd.io/etcd/api/v3/mvccpb"
-
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -88,6 +72,34 @@ func (a *adapter) Range(ctx context.Context, r *etcdserverpb.RangeRequest) (*etc
 		Kvs:   kvs,
 		Count: int64(len(kvs)),
 	}, nil
+}
+
+func (a *adapter) DeleteRange(ctx context.Context, r *etcdserverpb.DeleteRangeRequest) (*etcdserverpb.DeleteRangeResponse, error) {
+	a.logger.Debug("delete range request arrived",
+		zap.String("request", r.String()),
+	)
+
+	a.logger.Warn("delete range is not yet implemented")
+	return nil, rpctypes.ErrNotCapable
+}
+
+func (a *adapter) Txn(ctx context.Context, r *etcdserverpb.TxnRequest) (*etcdserverpb.TxnResponse, error) {
+	a.logger.Debug("txn request arrived",
+		zap.String("request", r.String()),
+	)
+
+	a.logger.Warn("txn is not yet implemented")
+	return nil, rpctypes.ErrNotCapable
+}
+
+func (a *adapter) Compact(ctx context.Context, r *etcdserverpb.CompactionRequest) (*etcdserverpb.CompactionResponse, error) {
+	a.logger.Debug("compact request arrived",
+		zap.String("request", r.String()),
+	)
+
+	a.logger.Warn("compact is not yet implemented")
+
+	return nil, rpctypes.ErrNotCapable
 }
 
 func (a *adapter) generateKeyValue(raw cache.Item) (*mvccpb.KeyValue, error) {
