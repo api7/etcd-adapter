@@ -7,6 +7,9 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/api7/etcd-adapter/backends/btree"
+	"github.com/k3s-io/kine/pkg/server"
+
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -14,7 +17,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/api7/etcd-adapter/cache"
+	"github.com/api7/etcd-adapter/backends"
 )
 
 // EventType is the type of event kind.
@@ -33,10 +36,10 @@ var (
 	_errInternalError = status.New(codes.Internal, "internal error").Err()
 )
 
-// cacheItem wraps the cache.item with some etcd specific concepts
+// cacheItem wraps the backends.item with some etcd specific concepts
 // like create revision and modify revision.
 type cacheItem struct {
-	cache.Item
+	backends.Item
 
 	createRevision int64
 	modRevision    int64
@@ -56,12 +59,12 @@ func (item *cacheItem) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 // Event contains a bunch of entities and the type of event.
 type Event struct {
 	// Item is the slice of event entites.
-	Items []cache.Item
+	Items []backends.Item
 	// Type is the event type.
 	Type EventType
 }
 
-// itemKey implements the cache.Item interface.
+// itemKey implements the backends.Item interface.
 type itemKey string
 
 func (ik itemKey) Key() string {
@@ -85,19 +88,16 @@ type Adapter interface {
 type adapter struct {
 	revision int64
 	ctx      context.Context
+	bridge   *server.KVServerBridge
 
 	logger  *zap.Logger
 	grpcSrv *grpc.Server
 	httpSrv *http.Server
 
 	eventsCh chan *Event
-	cache    cache.Cache
+	backend  server.Backend
 
-	mu       sync.RWMutex
-	watchers watcherGroup
-
-	watcherCancelMu sync.Mutex
-	watcherCancel   map[int64]func() bool
+	mu sync.RWMutex
 }
 
 type AdapterOptions struct {
@@ -106,16 +106,18 @@ type AdapterOptions struct {
 
 // NewEtcdAdapter new an etcd adapter instance.
 func NewEtcdAdapter(opts *AdapterOptions) Adapter {
-	a := &adapter{
-		eventsCh:      make(chan *Event),
-		cache:         cache.NewBTreeCache(),
-		watchers:      newWatcherGroup(),
-		watcherCancel: make(map[int64]func() bool),
-	}
+	var logger *zap.Logger
 	if opts != nil && opts.logger != nil {
-		a.logger = opts.logger
+		logger = opts.logger
 	} else {
-		a.logger = zap.NewExample()
+		logger = zap.NewExample()
+	}
+	backend := btree.NewBTreeCache(logger, nil)
+	bridge := server.New(backend)
+	a := &adapter{
+		eventsCh: make(chan *Event),
+		backend:  backend,
+		bridge:   bridge,
 	}
 	return a
 }
@@ -151,7 +153,7 @@ func (a *adapter) watchEvents(ctx context.Context) {
 							zap.Object("item", ci),
 						)
 					} else {
-						a.logger.Error("ignore update event as object is not found from the cache",
+						a.logger.Error("ignore update event as object is not found from the backends",
 							zap.Object("item", ci),
 						)
 					}
@@ -163,7 +165,7 @@ func (a *adapter) watchEvents(ctx context.Context) {
 							zap.Object("item", ci),
 						)
 					} else {
-						a.logger.Error("ignore delete event as object is not found from the cache",
+						a.logger.Error("ignore delete event as object is not found from the backends",
 							zap.Object("item", ci),
 						)
 					}

@@ -13,7 +13,7 @@
 // limitations under the License.
 //
 
-package cache
+package btree
 
 import (
 	"math/rand"
@@ -54,7 +54,7 @@ func TestBTreeCacheGet(t *testing.T) {
 		t.Parallel()
 		c := NewBTreeCache()
 		value := c.Get(mystring("abcdef"))
-		assert.Nil(t, value, "lookup cache")
+		assert.Nil(t, value, "lookup backends")
 	})
 
 	t.Run("lookup successfully", func(t *testing.T) {
