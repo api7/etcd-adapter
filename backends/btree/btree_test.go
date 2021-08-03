@@ -40,16 +40,6 @@ func generateString(n int) string {
 	return string(b)
 }
 
-type mystring string
-
-func (s mystring) Key() string {
-	return string(s)
-}
-
-func (s mystring) Marshal() ([]byte, error) {
-	return []byte(s), nil
-}
-
 func TestBTreeCacheSimpleOperations(t *testing.T) {
 	backend := NewBTreeCache(zap.NewExample())
 	assert.Nil(t, backend.Start(context.Background()), "checking error")
@@ -328,311 +318,256 @@ func TestBTreeCacheList(t *testing.T) {
 	assert.Nil(t, err, "checking error")
 }
 
-//func BenchmarkBTreeCacheGet(b *testing.B) {
-//	cases := []struct {
-//		name        string
-//		prepareData func() []mystring
-//	}{
-//		{
-//			name: "100 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//		},
-//		{
-//			name: "5000 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//		},
-//		{
-//			name: "20000 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//		},
-//	}
-//	for _, bc := range cases {
-//		bc := bc
-//		b.Run(bc.name, func(b *testing.B) {
-//			data := bc.prepareData()
-//			c := NewBTreeCache()
-//			for _, item := range data {
-//				c.Put(item)
-//			}
-//			b.ResetTimer()
-//			for _, item := range data {
-//				c.Get(item)
-//			}
-//		})
-//	}
-//}
-//
-//func BenchmarkBTreeCachePut(b *testing.B) {
-//	cases := []struct {
-//		name        string
-//		prepareData func() []mystring
-//	}{
-//		{
-//			name: "100 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//		},
-//		{
-//			name: "5000 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//		},
-//		{
-//			name: "20000 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//		},
-//	}
-//	for _, bc := range cases {
-//		bc := bc
-//		b.Run(bc.name, func(b *testing.B) {
-//			data := bc.prepareData()
-//			c := NewBTreeCache()
-//			for _, item := range data {
-//				c.Put(item)
-//			}
-//		})
-//	}
-//}
-//
-//func BenchmarkBTreeCacheRange(b *testing.B) {
-//	cases := []struct {
-//		name         string
-//		prepareData  func() []mystring
-//		prepareRange func(seed []mystring) ([]mystring, []mystring)
-//	}{
-//		{
-//			name: "100 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//			prepareRange: func(seed []mystring) ([]mystring, []mystring) {
-//				sort.Slice(seed, func(i, j int) bool {
-//					return seed[i].Key() < seed[j].Key()
-//				})
-//				startPos := make([]mystring, 0, len(seed))
-//				endPos := make([]mystring, 0, len(seed))
-//				for i := 0; i < len(seed); i++ {
-//					s := rand.Intn(len(seed))
-//					e := rand.Intn(len(seed))
-//					if s > e {
-//						s, e = e, s
-//					}
-//					startPos = append(startPos, seed[s])
-//					endPos = append(endPos, seed[e])
-//				}
-//				return startPos, endPos
-//			},
-//		},
-//		{
-//			name: "5000 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//			prepareRange: func(seed []mystring) ([]mystring, []mystring) {
-//				sort.Slice(seed, func(i, j int) bool {
-//					return seed[i].Key() < seed[j].Key()
-//				})
-//				startPos := make([]mystring, 0, len(seed))
-//				endPos := make([]mystring, 0, len(seed))
-//				for i := 0; i < len(seed); i++ {
-//					s := rand.Intn(len(seed))
-//					e := rand.Intn(len(seed))
-//					if s > e {
-//						s, e = e, s
-//					}
-//					startPos = append(startPos, seed[s])
-//					endPos = append(endPos, seed[e])
-//				}
-//				return startPos, endPos
-//			},
-//		},
-//		{
-//			name: "20000 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//			prepareRange: func(seed []mystring) ([]mystring, []mystring) {
-//				sort.Slice(seed, func(i, j int) bool {
-//					return seed[i].Key() < seed[j].Key()
-//				})
-//				startPos := make([]mystring, 0, len(seed))
-//				endPos := make([]mystring, 0, len(seed))
-//				for i := 0; i < len(seed); i++ {
-//					s := rand.Intn(len(seed))
-//					e := rand.Intn(len(seed))
-//					if s > e {
-//						s, e = e, s
-//					}
-//					startPos = append(startPos, seed[s])
-//					endPos = append(endPos, seed[e])
-//				}
-//				return startPos, endPos
-//			},
-//		},
-//	}
-//	for _, bc := range cases {
-//		bc := bc
-//		b.Run(bc.name, func(b *testing.B) {
-//			data := bc.prepareData()
-//			c := NewBTreeCache()
-//			for _, item := range data {
-//				c.Put(item)
-//			}
-//			startPos, endPos := bc.prepareRange(data)
-//			b.ResetTimer()
-//			for i := 0; i < len(data); i++ {
-//				c.Range(startPos[i], endPos[i])
-//			}
-//		})
-//	}
-//}
-//
-//func BenchmarkBTreeCacheList(b *testing.B) {
-//	cases := []struct {
-//		name        string
-//		prepareData func() []mystring
-//	}{
-//		{
-//			name: "100 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//		},
-//		{
-//			name: "5000 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//		},
-//		{
-//			name: "20000 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//		},
-//	}
-//	for _, bc := range cases {
-//		bc := bc
-//		b.Run(bc.name, func(b *testing.B) {
-//			data := bc.prepareData()
-//			c := NewBTreeCache()
-//			for _, item := range data {
-//				c.Put(item)
-//			}
-//			b.ResetTimer()
-//			for i := 0; i < 1000; i++ {
-//				c.List()
-//			}
-//		})
-//	}
-//}
-//
-//func BenchmarkBTreeCacheDelete(b *testing.B) {
-//	cases := []struct {
-//		name        string
-//		prepareData func() []mystring
-//	}{
-//		{
-//			name: "100 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//		},
-//		{
-//			name: "5000 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//		},
-//		{
-//			name: "20000 items",
-//			prepareData: func() []mystring {
-//				var outputs []mystring
-//				for i := 0; i < 100; i++ {
-//					outputs = append(outputs, mystring(generateString(i*3+1)))
-//				}
-//				return outputs
-//			},
-//		},
-//	}
-//	for _, bc := range cases {
-//		bc := bc
-//		b.Run(bc.name, func(b *testing.B) {
-//			data := bc.prepareData()
-//			c := NewBTreeCache()
-//			for _, item := range data {
-//				c.Put(item)
-//			}
-//			b.ResetTimer()
-//			for _, item := range data {
-//				c.Delete(item)
-//			}
-//		})
-//	}
-//}
+func TestBTreeCacheWatch(t *testing.T) {
+	backend := NewBTreeCache(zap.NewExample())
+	assert.Nil(t, backend.Start(context.Background()))
+
+	rev, err := backend.Create(context.Background(), "/apisix/routes/123", []byte("{zxcvfda}"), 123)
+	assert.Equal(t, rev, int64(2), "checking revision")
+	assert.Nil(t, err, "checking error")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	ch := backend.Watch(ctx, "/apisix/routes/123", 0)
+	evs := <-ch
+	assert.Len(t, evs, 1, "checking the initial events")
+	assert.Equal(t, evs[0].Create, true)
+	assert.Equal(t, evs[0].Delete, false)
+	assert.Nil(t, evs[0].PrevKV)
+	assert.Equal(t, evs[0].KV.Key, "/apisix/routes/123")
+	assert.Equal(t, evs[0].KV.Value, []byte("{zxcvfda}"))
+	assert.Equal(t, evs[0].KV.CreateRevision, int64(2))
+	assert.Equal(t, evs[0].KV.ModRevision, int64(2))
+
+	lastRev := rev
+
+	for _, v := range []string{"new value 1", "new value 2", "new value 3"} {
+		rev, _, ok, err := backend.Update(context.Background(), "/apisix/routes/123", []byte(v), lastRev, 0)
+		assert.Equal(t, ok, true, "checking update success flag")
+		assert.Nil(t, err, "checking error")
+		lastRev = rev
+	}
+	_, _, ok, err := backend.Delete(context.Background(), "/apisix/routes/123", lastRev)
+	assert.Equal(t, ok, true, "checking delete success flag")
+	assert.Nil(t, err, "checking error")
+
+	evs = <-ch
+	assert.Len(t, evs, 4)
+
+	// watcher will be removed.
+	cancel()
+	time.Sleep(time.Second)
+	b := backend.(*btreeCache)
+	assert.Len(t, b.watcherHub, 0)
+}
+
+func BenchmarkBTreeCacheGet(b *testing.B) {
+	cases := []struct {
+		name        string
+		prepareData func() []string
+	}{
+		{
+			name: "100 items",
+			prepareData: func() []string {
+				var outputs []string
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, generateString(i*3+1))
+				}
+				return outputs
+			},
+		},
+		{
+			name: "5000 items",
+			prepareData: func() []string {
+				var outputs []string
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, generateString(i*3+1))
+				}
+				return outputs
+			},
+		},
+		{
+			name: "20000 items",
+			prepareData: func() []string {
+				var outputs []string
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, generateString(i*3+1))
+				}
+				return outputs
+			},
+		},
+	}
+	for _, bc := range cases {
+		bc := bc
+		b.Run(bc.name, func(b *testing.B) {
+			data := bc.prepareData()
+			c := NewBTreeCache(zap.NewExample())
+			for _, item := range data {
+				_, err := c.Create(context.Background(), item, []byte(item), 0)
+				assert.Nil(b, err, "checking create error")
+			}
+			b.ResetTimer()
+			for _, item := range data {
+				_, kv, err := c.Get(context.Background(), item, 0)
+				assert.Equal(b, kv.Key, item, "checking kv")
+				assert.Nil(b, err, "checking get error")
+			}
+		})
+	}
+}
+
+func BenchmarkBTreeCacheCreate(b *testing.B) {
+	cases := []struct {
+		name        string
+		prepareData func() []string
+	}{
+		{
+			name: "100 items",
+			prepareData: func() []string {
+				var outputs []string
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, generateString(i*3+1))
+				}
+				return outputs
+			},
+		},
+		{
+			name: "5000 items",
+			prepareData: func() []string {
+				var outputs []string
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, generateString(i*3+1))
+				}
+				return outputs
+			},
+		},
+		{
+			name: "20000 items",
+			prepareData: func() []string {
+				var outputs []string
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, generateString(i*3+1))
+				}
+				return outputs
+			},
+		},
+	}
+	for _, bc := range cases {
+		bc := bc
+		b.Run(bc.name, func(b *testing.B) {
+			data := bc.prepareData()
+			c := NewBTreeCache(zap.NewExample())
+			for _, item := range data {
+				_, err := c.Create(context.Background(), item, []byte(item), 0)
+				assert.Nil(b, err, "checking create error")
+			}
+		})
+	}
+}
+
+func BenchmarkBTreeCacheList(b *testing.B) {
+	cases := []struct {
+		name        string
+		prepareData func() []string
+	}{
+		{
+			name: "100 items",
+			prepareData: func() []string {
+				var outputs []string
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, generateString(i*3+1))
+				}
+				return outputs
+			},
+		},
+		{
+			name: "5000 items",
+			prepareData: func() []string {
+				var outputs []string
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, generateString(i*3+1))
+				}
+				return outputs
+			},
+		},
+		{
+			name: "20000 items",
+			prepareData: func() []string {
+				var outputs []string
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, generateString(i*3+1))
+				}
+				return outputs
+			},
+		},
+	}
+	for _, bc := range cases {
+		bc := bc
+		b.Run(bc.name, func(b *testing.B) {
+			data := bc.prepareData()
+			c := NewBTreeCache(zap.NewExample())
+			for _, item := range data {
+				_, err := c.Create(context.Background(), item, []byte(item), 0)
+				assert.Nil(b, err, "checking create error")
+			}
+			b.ResetTimer()
+			for i := 0; i < len(data); i++ {
+				_, _, err := c.List(context.Background(), data[i], data[i], 0, 0)
+				assert.Nil(b, err, "checking list error")
+			}
+		})
+	}
+}
+
+func BenchmarkBTreeCacheDelete(b *testing.B) {
+	cases := []struct {
+		name        string
+		prepareData func() []string
+	}{
+		{
+			name: "100 items",
+			prepareData: func() []string {
+				var outputs []string
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, generateString(i*3+1))
+				}
+				return outputs
+			},
+		},
+		{
+			name: "5000 items",
+			prepareData: func() []string {
+				var outputs []string
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, generateString(i*3+1))
+				}
+				return outputs
+			},
+		},
+		{
+			name: "20000 items",
+			prepareData: func() []string {
+				var outputs []string
+				for i := 0; i < 100; i++ {
+					outputs = append(outputs, generateString(i*3+1))
+				}
+				return outputs
+			},
+		},
+	}
+	for _, bc := range cases {
+		bc := bc
+		b.Run(bc.name, func(b *testing.B) {
+			data := bc.prepareData()
+			c := NewBTreeCache(zap.NewExample())
+			for _, item := range data {
+				_, err := c.Create(context.Background(), item, []byte(item), 0)
+				assert.Nil(b, err, "checking create error")
+			}
+			b.ResetTimer()
+			for _, item := range data {
+				_, _, _, err := c.Delete(context.Background(), item, 0)
+				assert.Nil(b, err, "checking delete error")
+			}
+		})
+	}
+}

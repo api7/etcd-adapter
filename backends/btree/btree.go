@@ -16,8 +16,10 @@
 package btree
 
 import (
+	"container/list"
 	"context"
 	"sync"
+	"time"
 
 	"github.com/google/btree"
 	"github.com/k3s-io/kine/pkg/server"
@@ -28,9 +30,7 @@ const (
 	// markedRevBytesLen is the byte length of marked revision.
 	// The first `revBytesLen` bytes represents a normal revision. The last
 	// one byte is the mark.
-	markedRevBytesLen      = revBytesLen + 1
-	markBytePosition       = markedRevBytesLen - 1
-	markTombstone     byte = 't'
+	markedRevBytesLen = revBytesLen + 1
 )
 
 var (
@@ -43,11 +43,13 @@ type btreeCache struct {
 	index           index
 	logger          *zap.Logger
 	tree            *btree.BTree
-	watcherHub      map[string][]watcher
+	events          *list.List
+	watcherHub      map[string]map[*watcher]struct{}
 }
 
 type watcher struct {
-	ch chan []*server.Event
+	startRev int64
+	ch       chan []*server.Event
 }
 
 // item is the wrapper of user object so that we can implement the
@@ -74,10 +76,13 @@ func NewBTreeCache(logger *zap.Logger) server.Backend {
 		logger:          logger,
 		tree:            btree.New(32),
 		index:           newTreeIndex(logger),
+		events:          list.New(),
+		watcherHub:      make(map[string]map[*watcher]struct{}),
 	}
 }
 
-func (b *btreeCache) Start(_ context.Context) error {
+func (b *btreeCache) Start(ctx context.Context) error {
+	go b.sendEvents(ctx)
 	return nil
 }
 
@@ -141,6 +146,13 @@ func (b *btreeCache) Create(_ context.Context, key string, value []byte, lease i
 		lease: lease,
 	}
 	b.tree.ReplaceOrInsert(it)
+	b.makeEvent(&server.KeyValue{
+		Key:            key,
+		CreateRevision: b.currentRevision,
+		ModRevision:    b.currentRevision,
+		Value:          value,
+		Lease:          lease,
+	}, nil, false)
 	return rev.main, nil
 }
 
@@ -168,13 +180,15 @@ func (b *btreeCache) Update(ctx context.Context, key string, value []byte, atRev
 		lease: lease,
 	}
 	b.tree.ReplaceOrInsert(it)
-	return b.currentRevision, &server.KeyValue{
+	newKV := &server.KeyValue{
 		Key:            key,
 		Value:          value,
 		CreateRevision: kv.CreateRevision,
 		ModRevision:    b.currentRevision,
 		Lease:          lease,
-	}, true, nil
+	}
+	b.makeEvent(newKV, kv, false)
+	return b.currentRevision, newKV, true, nil
 }
 
 func (b *btreeCache) List(_ context.Context, prefix, startKey string, limit, revision int64) (int64, []*server.KeyValue, error) {
@@ -247,6 +261,7 @@ func (b *btreeCache) Delete(ctx context.Context, key string, atRev int64) (int64
 	if err := b.index.Tombstone([]byte(key), rev); err != nil {
 		return b.currentRevision, nil, false, err
 	}
+	b.makeEvent(nil, kv, true)
 
 	return b.currentRevision, kv, true, nil
 }
@@ -263,15 +278,20 @@ func (b *btreeCache) Count(_ context.Context, prefix string) (int64, int64, erro
 func (b *btreeCache) Watch(ctx context.Context, key string, startRevision int64) <-chan []*server.Event {
 	b.Lock()
 	defer b.Unlock()
-	w := watcher{
-		ch: make(chan []*server.Event, 1), // prepare a slot so that the first send can be non-blocking.
+	w := &watcher{
+		// use the current revisoin as the historical events will be handled at the first time.
+		startRev: b.currentRevision + 1,
+		ch:       make(chan []*server.Event, 1),
 	}
 	if group, ok := b.watcherHub[key]; ok {
-		group = append(group, w)
+		group[w] = struct{}{}
 		b.watcherHub[key] = group
 	} else {
-		b.watcherHub[key] = []watcher{w}
+		b.watcherHub[key] = map[*watcher]struct{}{
+			w: {},
+		}
 	}
+	go b.removeWatcher(ctx, key, w)
 
 	revs := b.index.RangeSince([]byte(key), nil, startRevision)
 	if len(revs) > 0 {
@@ -298,6 +318,116 @@ func (b *btreeCache) Watch(ctx context.Context, key string, startRevision int64)
 		}
 	}
 	return w.ch
+}
+
+func (b *btreeCache) removeWatcher(ctx context.Context, key string, w *watcher) {
+	<-ctx.Done()
+	b.Lock()
+	defer b.Unlock()
+
+	group, ok := b.watcherHub[key]
+	if !ok {
+		// This shouldn't happen
+		return
+	}
+	delete(group, w)
+	if len(group) == 0 {
+		delete(b.watcherHub, key)
+	} else {
+		b.watcherHub[key] = group
+	}
+
+	b.logger.Info("removed a watcher",
+		zap.String("key", key),
+	)
+}
+
+// makeEvent makes an event and pushes it to the queue. Note this method should be
+// invoked only if the mutex is locked.
+func (b *btreeCache) makeEvent(kv, prevKV *server.KeyValue, deleteEvent bool) {
+	var ev *server.Event
+	if deleteEvent {
+		ev = &server.Event{
+			Delete: true,
+			PrevKV: prevKV,
+		}
+	} else {
+		ev = &server.Event{
+			Create: true,
+			KV:     kv,
+			PrevKV: prevKV,
+		}
+	}
+	b.events.PushBack(ev)
+}
+
+func (b *btreeCache) sendEvents(ctx context.Context) {
+	// We cleanup the event backlog per 500ms.
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			break
+		}
+		b.Lock()
+		events := b.events
+		b.events = list.New()
+		b.Unlock()
+		go func() {
+			aggregatedEvents := make(map[string][]*server.Event)
+			for {
+				var (
+					ev  *server.Event
+					key string
+				)
+				if e := events.Front(); e != nil {
+					ev = e.Value.(*server.Event)
+					events.Remove(e)
+				} else {
+					break
+				}
+
+				if ev.KV != nil {
+					key = ev.KV.Key
+				} else {
+					key = ev.PrevKV.Key
+				}
+				group := aggregatedEvents[key]
+				aggregatedEvents[key] = append(group, ev)
+			}
+			b.RLock()
+			for key, watchers := range b.watcherHub {
+				events, ok := aggregatedEvents[key]
+				if !ok || len(events) == 0 {
+					continue
+				}
+				for w := range watchers {
+					filtered := make([]*server.Event, 0, len(events))
+					for _, ev := range events {
+						var rev int64
+						if ev.KV != nil {
+							rev = ev.KV.ModRevision
+						} else {
+							rev = ev.PrevKV.ModRevision
+						}
+						if rev >= w.startRev {
+							filtered = append(filtered, ev)
+						}
+					}
+					if len(filtered) > 0 {
+						go func(w *watcher) {
+							// TODO we may deepcopy events if users want to modify them.
+							w.ch <- filtered
+						}(w)
+					}
+				}
+			}
+			b.RUnlock()
+		}()
+	}
 }
 
 func getPrefixRangeEnd(prefix string) string {
