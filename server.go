@@ -32,7 +32,7 @@ import (
 )
 
 func (a *adapter) Serve(ctx context.Context, l net.Listener) error {
-	a.ctx = ctx
+	a.ctx, a.cancel = context.WithCancel(ctx)
 
 	m := cmux.New(l)
 	grpcl := m.Match(cmux.HTTP2())
@@ -75,7 +75,7 @@ func (a *adapter) Serve(ctx context.Context, l net.Listener) error {
 		}
 	}
 
-	go a.watchEvents(ctx)
+	go a.watchEvents(a.ctx)
 
 	go func() {
 		if err := a.httpSrv.Serve(httpl); err != nil && !strings.Contains(err.Error(), "mux: listener closed") {
@@ -102,9 +102,11 @@ func (a *adapter) Serve(ctx context.Context, l net.Listener) error {
 
 func (a *adapter) Shutdown(ctx context.Context) error {
 	a.grpcSrv.GracefulStop()
+
 	if err := a.httpSrv.Shutdown(ctx); err != nil {
 		return err
 	}
+	a.cancel()
 	return nil
 }
 

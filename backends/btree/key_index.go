@@ -98,18 +98,18 @@ func (ki *keyIndex) put(lg *zap.Logger, main int64, sub int64) {
 	ki.modified = rev
 }
 
-func (ki *keyIndex) restore(lg *zap.Logger, created, modified revision, ver int64) {
-	if len(ki.generations) != 0 {
-		lg.Panic(
-			"'restore' got an unexpected non-empty generations",
-			zap.Int("generations-size", len(ki.generations)),
-		)
-	}
-
-	ki.modified = modified
-	g := generation{created: created, ver: ver, revs: []revision{modified}}
-	ki.generations = append(ki.generations, g)
-}
+//func (ki *keyIndex) restore(lg *zap.Logger, created, modified revision, ver int64) {
+//	if len(ki.generations) != 0 {
+//		lg.Panic(
+//			"'restore' got an unexpected non-empty generations",
+//			zap.Int("generations-size", len(ki.generations)),
+//		)
+//	}
+//
+//	ki.modified = modified
+//	g := generation{created: created, ver: ver, revs: []revision{modified}}
+//	ki.generations = append(ki.generations, g)
+//}
 
 // tombstone puts a revision, pointing to a tombstone, to the keyIndex.
 // It also creates a new empty generation in the keyIndex.
