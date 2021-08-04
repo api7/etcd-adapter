@@ -18,6 +18,7 @@ package btree
 import (
 	"container/list"
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -286,28 +287,33 @@ func (b *btreeCache) Watch(ctx context.Context, key string, startRevision int64)
 	}
 	go b.removeWatcher(ctx, key, w)
 
-	revs := b.index.RangeSince([]byte(key), nil, startRevision)
-	if len(revs) > 0 {
+	pits := b.index.RangeSinceAll([]byte(key), []byte(getPrefixRangeEnd(key)), startRevision)
+	if len(pits) > 0 {
 		var events []*server.Event
-		for _, rev := range revs {
-			_, kv, err := b.getLocked(ctx, key, rev.main)
-			if err != nil {
-				b.logger.Error("failed to query, ignore it",
-					zap.String("key", key),
-					zap.Int64("rev", rev.main),
-				)
+		for _, pit := range pits {
+			v := b.tree.Get(&item{
+				key: pit.modifyRev,
+			})
+			if v == nil {
+				// Should not happen.
 				continue
 			}
-			if kv != nil {
-				events = append(events, &server.Event{
-					Delete: false,
-					Create: true,
-					KV:     kv,
-				})
+			it := v.(*item)
+			kv := &server.KeyValue{
+				Key:            string(pit.key),
+				CreateRevision: pit.createRev.main,
+				ModRevision:    pit.modifyRev.main,
+				Value:          it.value,
+				Lease:          it.lease,
 			}
-			if len(events) > 0 {
-				w.ch <- events
-			}
+			events = append(events, &server.Event{
+				Delete: false,
+				Create: true,
+				KV:     kv,
+			})
+		}
+		if len(events) > 0 {
+			w.ch <- events
 		}
 	}
 	return w.ch
@@ -368,9 +374,13 @@ func (b *btreeCache) sendEvents(ctx context.Context) {
 		b.Lock()
 		events := b.events
 		b.events = list.New()
+		aggregated := make(map[string][]*server.Event, len(b.watcherHub))
+		for key := range b.watcherHub {
+			aggregated[key] = []*server.Event{}
+		}
 		b.Unlock()
-		go func() {
-			aggregatedEvents := make(map[string][]*server.Event)
+
+		go func(aggregated map[string][]*server.Event) {
 			for {
 				var (
 					ev  *server.Event
@@ -388,12 +398,17 @@ func (b *btreeCache) sendEvents(ctx context.Context) {
 				} else {
 					key = ev.PrevKV.Key
 				}
-				group := aggregatedEvents[key]
-				aggregatedEvents[key] = append(group, ev)
+				for k := range aggregated {
+					// Prefix watch
+					if strings.HasPrefix(key, k) {
+						group := aggregated[k]
+						aggregated[k] = append(group, ev)
+					}
+				}
 			}
 			b.RLock()
 			for key, watchers := range b.watcherHub {
-				events, ok := aggregatedEvents[key]
+				events, ok := aggregated[key]
 				if !ok || len(events) == 0 {
 					continue
 				}
@@ -412,14 +427,14 @@ func (b *btreeCache) sendEvents(ctx context.Context) {
 					}
 					if len(filtered) > 0 {
 						go func(w *watcher) {
-							// TODO we may deepcopy events if users want to modify them.
+							// TODO we may deep-copy events if users want to modify them.
 							w.ch <- filtered
 						}(w)
 					}
 				}
 			}
 			b.RUnlock()
-		}()
+		}(aggregated)
 	}
 }
 

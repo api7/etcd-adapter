@@ -327,7 +327,7 @@ func TestBTreeCacheWatch(t *testing.T) {
 	assert.Nil(t, err, "checking error")
 
 	ctx, cancel := context.WithCancel(context.Background())
-	ch := backend.Watch(ctx, "/apisix/routes/123", 0)
+	ch := backend.Watch(ctx, "/apisix/routes", 0)
 	evs := <-ch
 	assert.Len(t, evs, 1, "checking the initial events")
 	assert.Equal(t, evs[0].Create, true)
@@ -350,8 +350,26 @@ func TestBTreeCacheWatch(t *testing.T) {
 	assert.Equal(t, ok, true, "checking delete success flag")
 	assert.Nil(t, err, "checking error")
 
+	_, err = backend.Create(context.Background(), "/apisix/routes/1333", []byte("{aaa}"), 3)
+	assert.Nil(t, err, "checking error")
+
 	evs = <-ch
-	assert.Len(t, evs, 4)
+	assert.Len(t, evs, 5)
+	assert.Equal(t, evs[0].KV.Key, "/apisix/routes/123")
+	assert.Equal(t, string(evs[0].KV.Value), "new value 1")
+	assert.Equal(t, evs[0].Create, true)
+	assert.Equal(t, evs[1].KV.Key, "/apisix/routes/123")
+	assert.Equal(t, string(evs[1].KV.Value), "new value 2")
+	assert.Equal(t, evs[1].Create, true)
+	assert.Equal(t, evs[2].KV.Key, "/apisix/routes/123")
+	assert.Equal(t, string(evs[2].KV.Value), "new value 3")
+	assert.Equal(t, evs[2].Create, true)
+	assert.Equal(t, evs[3].PrevKV.Key, "/apisix/routes/123")
+	assert.Equal(t, string(evs[3].PrevKV.Value), "new value 3")
+	assert.Equal(t, evs[3].Delete, true)
+	assert.Equal(t, evs[4].KV.Key, "/apisix/routes/1333")
+	assert.Equal(t, string(evs[4].KV.Value), "{aaa}")
+	assert.Equal(t, evs[4].Create, true)
 
 	// watcher will be removed.
 	cancel()

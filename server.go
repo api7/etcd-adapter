@@ -38,6 +38,10 @@ func (a *adapter) Serve(ctx context.Context, l net.Listener) error {
 	grpcl := m.Match(cmux.HTTP2())
 	httpl := m.Match(cmux.HTTP1Fast())
 
+	if err := a.backend.Start(a.ctx); err != nil {
+		return err
+	}
+
 	kep := keepalive.EnforcementPolicy{
 		MinTime: 15 * time.Second,
 	}

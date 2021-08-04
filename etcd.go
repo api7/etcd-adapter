@@ -6,11 +6,9 @@ import (
 	"net"
 	"net/http"
 
-	"google.golang.org/grpc"
-
-	"go.uber.org/zap"
-
 	"github.com/k3s-io/kine/pkg/server"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
 	"github.com/api7/etcd-adapter/backends/btree"
 )
@@ -75,6 +73,7 @@ func NewEtcdAdapter(opts *AdapterOptions) Adapter {
 	backend := btree.NewBTreeCache(logger)
 	bridge := server.New(backend)
 	a := &adapter{
+		logger:   logger,
 		eventsCh: make(chan []*Event),
 		backend:  backend,
 		bridge:   bridge,
@@ -97,13 +96,16 @@ func (a *adapter) watchEvents(ctx context.Context) {
 		}
 		if len(events) > 0 {
 			for _, ev := range events {
+				// TODO we may use separate goroutines to handle events so that
+				// this main cycle won't be blocked, but the concurrency might cause
+				// the handling order is unpredictable, so this is a judgement call.
 				switch ev.Type {
 				case EventAdd:
-					go a.handleAddEvent(ctx, ev)
+					a.handleAddEvent(ctx, ev)
 				case EventUpdate:
-					go a.handleUpdateEvent(ctx, ev)
+					a.handleUpdateEvent(ctx, ev)
 				case EventDelete:
-					go a.handleDeleteEvent(ctx, ev)
+					a.handleDeleteEvent(ctx, ev)
 				}
 			}
 		}

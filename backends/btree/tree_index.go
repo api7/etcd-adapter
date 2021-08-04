@@ -30,12 +30,32 @@ type index interface {
 	Put(key []byte, rev revision)
 	Tombstone(key []byte, rev revision) error
 	RangeSince(key, end []byte, rev int64) []revision
+	RangeSinceAll(key, end []byte, rev int64) pointInTimeKeys
 	Compact(rev int64) map[revision]struct{}
 	Keep(rev int64) map[revision]struct{}
 	Equal(b index) bool
 
 	Insert(ki *keyIndex)
 	KeyIndex(ki *keyIndex) *keyIndex
+}
+
+type pointInTimeKey struct {
+	key       []byte
+	createRev revision
+	modifyRev revision
+}
+
+type pointInTimeKeys []pointInTimeKey
+
+func (p pointInTimeKeys) Len() int { return len(p) }
+func (p pointInTimeKeys) Less(i, j int) bool {
+	if p[i].modifyRev.main != p[j].modifyRev.main {
+		return p[i].modifyRev.main < p[j].modifyRev.main
+	}
+	return p[i].modifyRev.sub < p[j].modifyRev.sub
+}
+func (p pointInTimeKeys) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
 }
 
 type treeIndex struct {
@@ -273,4 +293,60 @@ func (ti *treeIndex) Insert(ki *keyIndex) {
 	ti.Lock()
 	defer ti.Unlock()
 	ti.tree.ReplaceOrInsert(ki)
+}
+
+// RangeSinceAll is similar with RangeSince but returns the corresponding each key's create revision
+// and the modify revision since rev.
+func (ti *treeIndex) RangeSinceAll(key, end []byte, rev int64) pointInTimeKeys {
+	keyi := &keyIndex{key: key}
+
+	ti.RLock()
+	defer ti.RUnlock()
+
+	var pit pointInTimeKeys
+
+	if end == nil {
+		item := ti.tree.Get(keyi)
+		if item == nil {
+			return nil
+		}
+		keyi = item.(*keyIndex)
+		for _, rev := range keyi.since(ti.lg, rev) {
+			_, createRev, _, err := ti.Get(keyi.key, rev.main)
+			if err != nil {
+				// Should not happen
+				continue
+			}
+			pit = append(pit, pointInTimeKey{
+				key:       keyi.key,
+				createRev: createRev,
+				modifyRev: rev,
+			})
+		}
+		return pit
+	}
+
+	endi := &keyIndex{key: end}
+	ti.tree.AscendGreaterOrEqual(keyi, func(item btree.Item) bool {
+		if len(endi.key) > 0 && !item.Less(endi) {
+			return false
+		}
+		curKeyi := item.(*keyIndex)
+		//revs = append(revs, curKeyi.since(ti.lg, rev)...)
+		for _, rev := range curKeyi.since(ti.lg, rev) {
+			_, createRev, _, err := ti.Get(curKeyi.key, rev.main)
+			if err != nil {
+				// Should not happen
+				continue
+			}
+			pit = append(pit, pointInTimeKey{
+				key:       curKeyi.key,
+				createRev: createRev,
+				modifyRev: rev,
+			})
+		}
+		return true
+	})
+	sort.Sort(pointInTimeKeys{})
+	return pit
 }
