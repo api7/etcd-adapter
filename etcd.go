@@ -59,14 +59,14 @@ type adapter struct {
 }
 
 type AdapterOptions struct {
-	logger *zap.Logger
+	Logger *zap.Logger
 }
 
 // NewEtcdAdapter new an etcd adapter instance.
 func NewEtcdAdapter(opts *AdapterOptions) Adapter {
 	var logger *zap.Logger
-	if opts != nil && opts.logger != nil {
-		logger = opts.logger
+	if opts != nil && opts.Logger != nil {
+		logger = opts.Logger
 	} else {
 		logger = zap.NewExample()
 	}
