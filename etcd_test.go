@@ -84,6 +84,12 @@ func TestEtcdAdapter(t *testing.T) {
 	assert.Nil(t, err, "checking error")
 	assert.Len(t, resp.Kvs, 0, "checking number of kvs")
 
+	resp, err = client.Get(context.Background(), "/apisix/routes", clientv3.WithPrefix())
+	assert.Nil(t, err, "checking error")
+	assert.Len(t, resp.Kvs, 2, "checking number of kvs")
+	assert.Equal(t, resp.Kvs[0].Key, "/apisix/routes/1")
+	assert.Equal(t, resp.Kvs[1].Key, "/apisix/routes/2")
+
 	events = []*Event{
 		{
 			Key:   "/apisix/routes/1",
