@@ -118,6 +118,10 @@ func (b *btreeCache) getLocked(_ context.Context, key string, revision int64) (i
 
 }
 
+func (b *btreeCache) DbSize(_ context.Context) (int64, error) {
+	return 0, nil
+}
+
 func (b *btreeCache) Create(_ context.Context, key string, value []byte, lease int64) (int64, error) {
 	b.Lock()
 	defer b.Unlock()
@@ -273,7 +277,7 @@ func (b *btreeCache) Watch(ctx context.Context, key string, startRevision int64)
 	b.Lock()
 	defer b.Unlock()
 	w := &watcher{
-		// use the current revisoin as the historical events will be handled at the first time.
+		// use the current revision as the historical events will be handled at the first time.
 		startRev: b.currentRevision + 1,
 		ch:       make(chan []*server.Event, 1),
 	}
@@ -348,6 +352,9 @@ func (b *btreeCache) makeEvent(kv, prevKV *server.KeyValue, deleteEvent bool) {
 	if deleteEvent {
 		ev = &server.Event{
 			Delete: true,
+			// Kine uses KV field to get the mod revision, so even for delete event,
+			// add the kv field.
+			KV:     prevKV,
 			PrevKV: prevKV,
 		}
 	} else {
@@ -361,7 +368,7 @@ func (b *btreeCache) makeEvent(kv, prevKV *server.KeyValue, deleteEvent bool) {
 }
 
 func (b *btreeCache) sendEvents(ctx context.Context) {
-	// We cleanup the event backlog per 500ms.
+	// We clean up the event backlog per 500ms.
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 	for {

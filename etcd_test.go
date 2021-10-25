@@ -87,8 +87,8 @@ func TestEtcdAdapter(t *testing.T) {
 	resp, err = client.Get(context.Background(), "/apisix/routes", clientv3.WithPrefix())
 	assert.Nil(t, err, "checking error")
 	assert.Len(t, resp.Kvs, 2, "checking number of kvs")
-	assert.Equal(t, resp.Kvs[0].Key, "/apisix/routes/1")
-	assert.Equal(t, resp.Kvs[1].Key, "/apisix/routes/2")
+	assert.Equal(t, string(resp.Kvs[0].Key), "/apisix/routes/1")
+	assert.Equal(t, string(resp.Kvs[1].Key), "/apisix/routes/2")
 
 	events = []*Event{
 		{
@@ -157,10 +157,10 @@ func TestEtcdAdapterWatch(t *testing.T) {
 	resp := <-ch
 	assert.Len(t, resp.Events, 2)
 	assert.Equal(t, resp.Events[0].Type, clientv3.EventTypePut)
-	assert.Equal(t, resp.Events[0].Kv.Key, "/apisix/routes/1")
+	assert.Equal(t, string(resp.Events[0].Kv.Key), "/apisix/routes/1")
 	assert.Equal(t, resp.Events[0].Kv.Value, []byte("123"))
 	assert.Equal(t, resp.Events[1].Type, clientv3.EventTypePut)
-	assert.Equal(t, resp.Events[1].Kv.Key, "/apisix/routes/1")
+	assert.Equal(t, string(resp.Events[1].Kv.Key), "/apisix/routes/1")
 	assert.Equal(t, resp.Events[1].Kv.Value, []byte("456"))
 
 	events = []*Event{
@@ -173,7 +173,7 @@ func TestEtcdAdapterWatch(t *testing.T) {
 	resp = <-ch
 	assert.Len(t, resp.Events, 1)
 	assert.Equal(t, resp.Events[0].Type, clientv3.EventTypeDelete)
-	assert.Equal(t, resp.Events[0].PrevKv.Key, "/apisix/routes/1")
+	assert.Equal(t, string(resp.Events[0].PrevKv.Key), "/apisix/routes/1")
 	assert.Equal(t, resp.Events[0].PrevKv.Value, []byte("456"))
 
 	cancel()
