@@ -71,7 +71,7 @@ func NewEtcdAdapter(opts *AdapterOptions) Adapter {
 		logger = zap.NewExample()
 	}
 	backend := btree.NewBTreeCache(logger)
-	bridge := server.New(backend)
+	bridge := server.New(backend, "")
 	a := &adapter{
 		logger:   logger,
 		eventsCh: make(chan []*Event),
