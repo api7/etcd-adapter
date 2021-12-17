@@ -105,7 +105,7 @@ func (a *adapter) Serve(ctx context.Context, l net.Listener) error {
 }
 
 func (a *adapter) Shutdown(ctx context.Context) error {
-	a.grpcSrv.GracefulStop()
+	a.grpcSrv.Stop()
 
 	if err := a.httpSrv.Shutdown(ctx); err != nil {
 		return err
