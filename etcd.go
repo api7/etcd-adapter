@@ -8,8 +8,12 @@ import (
 	"net/http"
 
 	"github.com/k3s-io/kine/pkg/server"
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/api7/etcd-adapter/backends/btree"
 	"github.com/api7/etcd-adapter/backends/mysql"
@@ -67,13 +71,20 @@ type adapter struct {
 
 	eventsCh chan []*Event
 	backend  server.Backend
-	bridge   *server.KVServerBridge
+	bridge   *bridge
 }
 
+// AdapterOptions contains fields that can control the adapter behaviors.
 type AdapterOptions struct {
 	Logger       *zap.Logger
 	Backend      BackendKind
 	MySQLOptions *mysql.Options
+}
+
+// bridge wraps the server.KVServerBridge so that we can overrides some
+// methods of it to overcome the constraints.
+type bridge struct {
+	*server.KVServerBridge
 }
 
 // NewEtcdAdapter new an etcd adapter instance.
@@ -100,7 +111,10 @@ func NewEtcdAdapter(opts *AdapterOptions) Adapter {
 		panic("unknown backend")
 	}
 
-	bridge := server.New(backend, "")
+	bridge := &bridge{
+		KVServerBridge: server.New(backend, ""),
+	}
+
 	a := &adapter{
 		logger:   logger,
 		eventsCh: make(chan []*Event),
@@ -255,4 +269,104 @@ func (a *adapter) showVersion(w http.ResponseWriter, _ *http.Request) {
 			zap.Error(err),
 		)
 	}
+}
+
+func (b *bridge) Put(ctx context.Context, r *etcdserverpb.PutRequest) (*etcdserverpb.PutResponse, error) {
+	rangeResp, err := b.Range(ctx, &etcdserverpb.RangeRequest{
+		Key: r.Key,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	cmp := clientv3.ModRevision(string(r.Key))
+	if len(rangeResp.Kvs) > 0 {
+		cmp = clientv3.Compare(cmp, "=", rangeResp.Kvs[0].ModRevision)
+	} else {
+		cmp = clientv3.Compare(cmp, "=", 0)
+	}
+
+	txn := &etcdserverpb.TxnRequest{
+		Compare: []*etcdserverpb.Compare{
+			(*etcdserverpb.Compare)(&cmp),
+		},
+		Success: []*etcdserverpb.RequestOp{
+			{
+				Request: &etcdserverpb.RequestOp_RequestPut{
+					RequestPut: r,
+				},
+			},
+		},
+		Failure: []*etcdserverpb.RequestOp{
+			{
+				Request: &etcdserverpb.RequestOp_RequestRange{
+					RequestRange: &etcdserverpb.RangeRequest{
+						Key: r.Key,
+					},
+				},
+			},
+		},
+	}
+
+	resp, err := b.KVServerBridge.Txn(ctx, txn)
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.Responses) == 0 {
+		return nil, fmt.Errorf("broken internal put implementation")
+	}
+	return resp.Responses[0].GetResponsePut(), nil
+}
+
+func (b *bridge) DeleteRange(ctx context.Context, r *etcdserverpb.DeleteRangeRequest) (*etcdserverpb.DeleteRangeResponse, error) {
+	// See https://github.com/k3s-io/kine/blob/c1edece777/pkg/server/delete.go#L9
+	// to learn how kine decides whether this is a DELETE request.
+	txn := &etcdserverpb.TxnRequest{
+		Compare: []*etcdserverpb.Compare{},
+		Success: []*etcdserverpb.RequestOp{
+			{
+				Request: &etcdserverpb.RequestOp_RequestRange{
+					RequestRange: &etcdserverpb.RangeRequest{
+						Key:      r.Key,
+						RangeEnd: r.RangeEnd,
+					},
+				},
+			},
+			{
+				Request: &etcdserverpb.RequestOp_RequestDeleteRange{
+					RequestDeleteRange: r,
+				},
+			},
+		},
+	}
+
+	resp, err := b.KVServerBridge.Txn(ctx, txn)
+	if err != nil {
+		return nil, err
+	}
+	// TODO fix the kine bug that the response type is not DeleteRange.
+	rangeResp := resp.Responses[0].GetResponseRange()
+	if len(resp.Responses) == 0 {
+		return nil, fmt.Errorf("broken internal delete_range implementation")
+	}
+
+	deleteRangeResp := &etcdserverpb.DeleteRangeResponse{
+		Header:  rangeResp.Header,
+		Deleted: int64(len(rangeResp.Kvs)),
+	}
+	return deleteRangeResp, nil
+}
+
+// Register copies the behaviors of the b.KVServerBridge as we want to override
+// some RPC implementation of ETCD.
+func (b *bridge) Register(server *grpc.Server) {
+	etcdserverpb.RegisterLeaseServer(server, b)
+	etcdserverpb.RegisterWatchServer(server, b)
+	etcdserverpb.RegisterKVServer(server, b)
+	etcdserverpb.RegisterClusterServer(server, b)
+	etcdserverpb.RegisterMaintenanceServer(server, b)
+
+	hsrv := health.NewServer()
+	hsrv.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
+	healthpb.RegisterHealthServer(server, hsrv)
 }

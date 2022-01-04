@@ -13,14 +13,22 @@
 # limitations under the License.
 #
 
+.PHONY: test
 test:
 	@go test ./...
 
+.PHONY: bench
 bench:
 	@go test -bench '^Benchmark' ./...
 
+.PHONY: gofmt
 gofmt:
 	@find . -name "*.go" | xargs gofmt -w
 
+.PHONY: lint
 lint:
 	@golangci-lint run
+
+.PHONY: build-apisix-mysql
+build-apisix-mysql:
+	@cd integrations/mysql && go build -o ../../apisix-mysql github.com/api7/etcd-adapter/integrations/mysql

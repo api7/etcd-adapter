@@ -19,18 +19,16 @@ import (
 	"net"
 	"time"
 
-	"go.uber.org/zap"
-
 	adapter "github.com/api7/etcd-adapter"
 	"github.com/api7/etcd-adapter/backends/mysql"
 )
 
 func main() {
 	opts := &adapter.AdapterOptions{
-		Logger:  zap.NewExample(),
 		Backend: adapter.BackendMySQL,
 		MySQLOptions: &mysql.Options{
-			DSN: "root@tcp(127.0.0.1:4000)/apisix",
+			AppendSlashOnWatch: true,
+			DSN:                "root@tcp(127.0.0.1:4000)/apisix",
 		},
 	}
 	a := adapter.NewEtcdAdapter(opts)

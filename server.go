@@ -55,6 +55,8 @@ func (a *adapter) Serve(ctx context.Context, l net.Listener) error {
 		grpc.KeepaliveParams(kp),
 	)
 	a.grpcSrv = grpcSrv
+
+	// Copy the codes from KVServerBridge.Register.
 	a.bridge.Register(grpcSrv)
 
 	if gwmux, err := a.registerGateway(l.Addr().String()); err != nil {
