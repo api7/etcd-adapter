@@ -3,6 +3,7 @@ package etcdadapter
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 
@@ -11,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/api7/etcd-adapter/backends/btree"
+	"github.com/api7/etcd-adapter/backends/mysql"
 )
 
 // EventType is the type of event kind.
@@ -23,6 +25,16 @@ const (
 	EventUpdate
 	// EventDelete is the delete event
 	EventDelete
+)
+
+// BackendKind is the type of backend.
+type BackendKind int
+
+const (
+	// BackendBTree indicates the btree-based backend.
+	BackendBTree = BackendKind(iota)
+	// BackendMySQL indicates the mysql-based backend.
+	BackendMySQL
 )
 
 // Event contains a bunch of entities and the type of event.
@@ -59,18 +71,35 @@ type adapter struct {
 }
 
 type AdapterOptions struct {
-	Logger *zap.Logger
+	Logger       *zap.Logger
+	Backend      BackendKind
+	MySQLOptions *mysql.Options
 }
 
 // NewEtcdAdapter new an etcd adapter instance.
 func NewEtcdAdapter(opts *AdapterOptions) Adapter {
-	var logger *zap.Logger
+	var (
+		err     error
+		logger  *zap.Logger
+		backend server.Backend
+	)
 	if opts != nil && opts.Logger != nil {
 		logger = opts.Logger
 	} else {
 		logger = zap.NewExample()
 	}
-	backend := btree.NewBTreeCache(logger)
+	switch opts.Backend {
+	case BackendBTree:
+		backend = btree.NewBTreeCache(logger)
+	case BackendMySQL:
+		backend, err = mysql.NewMySQLCache(context.TODO(), opts.MySQLOptions)
+		if err != nil {
+			panic(fmt.Sprintf("failed to create mysql backend: %s", err))
+		}
+	default:
+		panic("unknown backend")
+	}
+
 	bridge := server.New(backend, "")
 	a := &adapter{
 		logger:   logger,
