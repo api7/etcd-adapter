@@ -24,9 +24,8 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/api7/etcd-adapter/internal/backends/mysql"
-
 	"github.com/api7/etcd-adapter/internal/adapter"
+	"github.com/api7/etcd-adapter/internal/backends/mysql"
 )
 
 var rootCmd = &cobra.Command{
