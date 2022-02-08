@@ -60,6 +60,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+// Execute bootstrap root command.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
