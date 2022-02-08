@@ -19,7 +19,8 @@ import (
 	"context"
 	"net"
 	"os"
-	"time"
+	"os/signal"
+	"syscall"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -36,12 +37,10 @@ var rootCmd = &cobra.Command{
 			Logger:  zap.NewExample(),
 			Backend: adapter.BackendMySQL,
 			MySQLOptions: &mysql.Options{
-				DSN: "root@tcp(127.0.0.1:3306)/apisix",
+				DSN: "root@tcp(172.20.4.4:3306)/apisix",
 			},
 		}
 		a := adapter.NewEtcdAdapter(opts)
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Hour)
-		defer cancel()
 
 		ln, err := net.Listen("tcp", "127.0.0.1:12379")
 		if err != nil {
@@ -52,9 +51,14 @@ var rootCmd = &cobra.Command{
 				panic(err)
 			}
 		}()
-		<-ctx.Done()
-		if err := a.Shutdown(context.TODO()); err != nil {
-			panic(err)
+
+		// graceful exit
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+		select {
+		case <-quit:
+			opts.Logger.Info("See you next time!")
 		}
 	},
 }
