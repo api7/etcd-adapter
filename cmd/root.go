@@ -24,14 +24,14 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/api7/etcd-adapter/internal/backend/mysql"
+	"github.com/api7/etcd-adapter/internal/backends/mysql"
 
 	"github.com/api7/etcd-adapter/internal/adapter"
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "etcd-adapter",
-	Short: "The bridge between etcd protocol and other storage backend.",
+	Short: "The bridge between etcd protocol and other storage backends.",
 	Run: func(cmd *cobra.Command, args []string) {
 		opts := &adapter.AdapterOptions{
 			Logger:  zap.NewExample(),

@@ -11,8 +11,8 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	"github.com/api7/etcd-adapter/internal/backend/btree"
-	"github.com/api7/etcd-adapter/internal/backend/mysql"
+	"github.com/api7/etcd-adapter/internal/backends/btree"
+	"github.com/api7/etcd-adapter/internal/backends/mysql"
 )
 
 // EventType is the type of event kind.
