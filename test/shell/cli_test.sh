@@ -24,7 +24,7 @@ start_adapter() {
 }
 
 stop_adapter() {
-  run pkill -9 etcd-adapter
+  run pkill etcd-adapter
   [ "$status" -eq 0 ]
   sleep "$1"
 }
