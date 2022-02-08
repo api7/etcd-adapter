@@ -13,6 +13,22 @@
 // limitations under the License.
 //
 
-// Package backends contains the prototype definition and the behaviors that
-// the backends for etcd-adapter requires.
-package backend
+package backends
+
+// Item will be used as the key and value type of the backends.
+type Item interface {
+	// Key returns the unique identical key for this item.
+	// Key will be used to decide the partial order. Currently
+	// it's string type and cannot be changed.
+	Key() string
+	// Marshal marshals the item.
+	Marshal() ([]byte, error)
+}
+
+// Revisioner is the revision manager, revision is a int64 typed integer.
+type Revisioner interface {
+	// Revision returns the current revision.
+	Revision() int64
+	// Incr increases the current revision and returns it.
+	Incr() int64
+}
