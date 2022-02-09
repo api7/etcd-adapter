@@ -58,6 +58,11 @@ var rootCmd = &cobra.Command{
 
 		select {
 		case <-quit:
+			err := a.Shutdown(context.TODO())
+			if err != nil {
+				opts.Logger.Error("An error occurred while exiting.", zap.Error(err))
+				return
+			}
 			opts.Logger.Info("See you next time!")
 		}
 	},
