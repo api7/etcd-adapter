@@ -37,7 +37,7 @@ var rootCmd = &cobra.Command{
 			Logger:  zap.NewExample(),
 			Backend: adapter.BackendMySQL,
 			MySQLOptions: &mysql.Options{
-				DSN: "root@tcp(172.20.4.4:3306)/apisix",
+				DSN: "root@tcp(127.0.0.1:3306)/apisix",
 			},
 		}
 		a := adapter.NewEtcdAdapter(opts)
