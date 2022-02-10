@@ -1,0 +1,8 @@
+server:
+  host: 127.0.0.1
+  port: 12379
+# tls:
+#   cert: /path/to/file.pem
+#   key: /path/to/file.pem
+
+dsn: mysql://root@tcp(127.0.0.1:3306)/apisix

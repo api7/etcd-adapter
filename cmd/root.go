@@ -22,27 +22,48 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/kos-v/dsnparser"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
 	"github.com/api7/etcd-adapter/internal/adapter"
 	"github.com/api7/etcd-adapter/internal/backends/mysql"
+	"github.com/api7/etcd-adapter/internal/config"
+	"github.com/api7/etcd-adapter/internal/utils"
 )
+
+var configFile string
 
 var rootCmd = &cobra.Command{
 	Use:   "etcd-adapter",
 	Short: "The bridge between etcd protocol and other storage backends.",
 	Run: func(cmd *cobra.Command, args []string) {
+		// initialize configuration
+		err := config.Init(configFile)
+		if err != nil {
+			return
+		}
+
+		dsn := dsnparser.Parse(config.DSN)
+		var adapterBackend adapter.BackendKind
+		switch dsn.GetScheme() {
+		case "mysql":
+			adapterBackend = adapter.BackendMySQL
+		default:
+			adapterBackend = adapter.BackendBTree
+		}
+
+		// bootstrap etcd adapter
 		opts := &adapter.AdapterOptions{
-			Logger:  zap.NewExample(),
-			Backend: adapter.BackendMySQL,
+			Logger:  utils.GetLogger(),
+			Backend: adapterBackend,
 			MySQLOptions: &mysql.Options{
-				DSN: "root@tcp(127.0.0.1:3306)/apisix",
+				DSN: config.DSN,
 			},
 		}
 		a := adapter.NewEtcdAdapter(opts)
 
-		ln, err := net.Listen("tcp", "127.0.0.1:12379")
+		ln, err := net.Listen("tcp", net.JoinHostPort(config.Server.Host, config.Server.Port))
 		if err != nil {
 			panic(err)
 		}
@@ -59,17 +80,22 @@ var rootCmd = &cobra.Command{
 		select {
 		case <-quit:
 			err := a.Shutdown(context.TODO())
+			_ = utils.GetLogger().Sync()
 			if err != nil {
-				opts.Logger.Error("An error occurred while exiting.", zap.Error(err))
+				utils.GetLogger().Error("An error occurred while exiting", zap.Error(err))
 				return
 			}
-			opts.Logger.Info("See you next time!")
+			utils.GetLogger().Info("See you next time!")
 		}
 	},
 }
 
 // Execute bootstrap root command.
 func Execute() {
+	// declare flags
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "config file")
+
+	// execute root command
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
