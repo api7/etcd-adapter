@@ -17,6 +17,7 @@ package mysql
 
 import (
 	"context"
+	"strings"
 
 	"github.com/k3s-io/kine/pkg/drivers/generic"
 	mysqldriver "github.com/k3s-io/kine/pkg/drivers/mysql"
@@ -38,7 +39,11 @@ type mysqlCache struct {
 // the MySQL backend. The first argument `ctx` is used to control the lifecycle of
 // mysql connection pool.
 func NewMySQLCache(ctx context.Context, options *Options) (server.Backend, error) {
-	backend, err := mysqldriver.New(ctx, options.DSN, tls.Config{}, options.ConnPool)
+	dsn := options.DSN
+	if strings.HasPrefix(dsn, "mysql://") {
+		dsn = strings.Split(dsn, "://")[1]
+	}
+	backend, err := mysqldriver.New(ctx, dsn, tls.Config{}, options.ConnPool)
 	if err != nil {
 		return nil, err
 	}

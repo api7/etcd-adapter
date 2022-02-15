@@ -22,7 +22,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/kos-v/dsnparser"
+	"github.com/hot123s/dsn"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
@@ -44,9 +44,13 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		dsn := dsnparser.Parse(config.DSN)
+		dsn, err := dsn.Parse(config.DSN)
+		if err != nil {
+			return
+		}
+
 		var adapterBackend adapter.BackendKind
-		switch dsn.GetScheme() {
+		switch dsn.Protocol {
 		case "mysql":
 			adapterBackend = adapter.BackendMySQL
 		default:
