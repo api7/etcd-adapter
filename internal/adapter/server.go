@@ -13,7 +13,7 @@
 // limitations under the License.
 //
 
-package etcdadapter
+package adapter
 
 import (
 	"context"
