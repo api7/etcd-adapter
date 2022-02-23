@@ -5,4 +5,11 @@ server:
 #   cert: /path/to/file.pem
 #   key: /path/to/file.pem
 
-dsn: mysql://root@tcp(127.0.0.1:3306)/apisix
+datasource:
+  type: mysql
+  mysql:
+    host: 172.20.4.4
+    port: 3306
+    username: root
+    password:
+    database: apisix

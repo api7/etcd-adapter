@@ -1,22 +1,18 @@
 package config
 
 import (
+	"github.com/api7/gopkg/pkg/log"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-
-	"github.com/api7/etcd-adapter/internal/utils"
 )
 
 var (
-	// the DSN for database
-	DSN string
-
-	// etcd Server and TLS configuration
-	Server server
+	// the Config for etcd adapter
+	Config config
 )
 
 // Init load and unmarshal config file
-func Init(configFile string) error {
+func Init(configFile string, logger *log.Logger) error {
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
 	} else {
@@ -24,31 +20,19 @@ func Init(configFile string) error {
 		viper.SetConfigType("yaml")
 	}
 
+	// read configuration file
 	viper.AutomaticEnv()
 	err := viper.ReadInConfig()
 	if err != nil {
-		utils.GetLogger().Error("Config file load failed", zap.Error(err))
+		logger.Errorw("Config file load failed", zap.Error(err))
 		return err
 	}
-	utils.GetLogger().Info("Config file load successful", zap.String("path", viper.ConfigFileUsed()))
+	logger.Infow("Config file load successful", zap.String("path", viper.ConfigFileUsed()))
 
-	err = unmarshal()
+	// parse configuration
+	err = viper.Unmarshal(&Config)
 	if err != nil {
-		utils.GetLogger().Error("Config file unmarshal failed", zap.Error(err))
-		return err
-	}
-
-	return nil
-}
-
-func unmarshal() error {
-	err := viper.UnmarshalKey("server", &Server)
-	if err != nil {
-		return err
-	}
-
-	err = viper.UnmarshalKey("dsn", &DSN)
-	if err != nil {
+		logger.Errorw("Config file unmarshal failed", zap.Error(err))
 		return err
 	}
 
