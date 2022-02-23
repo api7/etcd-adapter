@@ -3,16 +3,13 @@ package adapter
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 
+	"github.com/api7/gopkg/pkg/log"
 	"github.com/k3s-io/kine/pkg/server"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-
-	"github.com/api7/etcd-adapter/internal/backends/btree"
-	"github.com/api7/etcd-adapter/internal/backends/mysql"
 )
 
 // EventType is the type of event kind.
@@ -61,7 +58,7 @@ type adapter struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	logger  *zap.Logger
+	logger  *log.Logger
 	grpcSrv *grpc.Server
 	httpSrv *http.Server
 
@@ -70,36 +67,8 @@ type adapter struct {
 	bridge   *server.KVServerBridge
 }
 
-type AdapterOptions struct {
-	Logger       *zap.Logger
-	Backend      BackendKind
-	MySQLOptions *mysql.Options
-}
-
 // NewEtcdAdapter new an etcd adapter instance.
-func NewEtcdAdapter(opts *AdapterOptions) Adapter {
-	var (
-		err     error
-		logger  *zap.Logger
-		backend server.Backend
-	)
-	if opts != nil && opts.Logger != nil {
-		logger = opts.Logger
-	} else {
-		logger = zap.NewExample()
-	}
-	switch opts.Backend {
-	case BackendBTree:
-		backend = btree.NewBTreeCache(logger)
-	case BackendMySQL:
-		backend, err = mysql.NewMySQLCache(context.TODO(), opts.MySQLOptions)
-		if err != nil {
-			panic(fmt.Sprintf("failed to create mysql backend: %s", err))
-		}
-	default:
-		panic("unknown backend")
-	}
-
+func NewEtcdAdapter(backend server.Backend, logger *log.Logger) Adapter {
 	bridge := server.New(backend, "")
 	a := &adapter{
 		logger:   logger,
