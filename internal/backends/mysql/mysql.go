@@ -17,7 +17,6 @@ package mysql
 
 import (
 	"context"
-	"strings"
 
 	"github.com/k3s-io/kine/pkg/drivers/generic"
 	mysqldriver "github.com/k3s-io/kine/pkg/drivers/mysql"
@@ -40,9 +39,6 @@ type mysqlCache struct {
 // mysql connection pool.
 func NewMySQLCache(ctx context.Context, options *Options) (server.Backend, error) {
 	dsn := options.DSN
-	if strings.HasPrefix(dsn, "mysql://") {
-		dsn = strings.Split(dsn, "://")[1]
-	}
 	backend, err := mysqldriver.New(ctx, dsn, tls.Config{}, options.ConnPool)
 	if err != nil {
 		return nil, err

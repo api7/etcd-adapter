@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/api7/gopkg/pkg/log"
 	"github.com/google/btree"
 	"go.uber.org/zap"
 )
@@ -74,11 +75,11 @@ type keyIndex struct {
 }
 
 // put puts a revision to the keyIndex.
-func (ki *keyIndex) put(lg *zap.Logger, main int64, sub int64) {
+func (ki *keyIndex) put(lg *log.Logger, main int64, sub int64) {
 	rev := revision{main: main, sub: sub}
 
 	if !rev.GreaterThan(ki.modified) {
-		lg.Panic(
+		lg.Panicw(
 			"'put' with an unexpected smaller revision",
 			zap.Int64("given-revision-main", rev.main),
 			zap.Int64("given-revision-sub", rev.sub),
@@ -114,9 +115,9 @@ func (ki *keyIndex) put(lg *zap.Logger, main int64, sub int64) {
 // tombstone puts a revision, pointing to a tombstone, to the keyIndex.
 // It also creates a new empty generation in the keyIndex.
 // It returns ErrRevisionNotFound when tombstone on an empty generation.
-func (ki *keyIndex) tombstone(lg *zap.Logger, main int64, sub int64) error {
+func (ki *keyIndex) tombstone(lg *log.Logger, main int64, sub int64) error {
 	if ki.isEmpty() {
-		lg.Panic(
+		lg.Panicw(
 			"'tombstone' got an unexpected empty keyIndex",
 			zap.String("key", string(ki.key)),
 		)
@@ -131,9 +132,9 @@ func (ki *keyIndex) tombstone(lg *zap.Logger, main int64, sub int64) error {
 
 // get gets the modified, created revision and version of the key that satisfies the given atRev.
 // Rev must be higher than or equal to the given atRev.
-func (ki *keyIndex) get(lg *zap.Logger, atRev int64) (modified, created revision, ver int64, err error) {
+func (ki *keyIndex) get(lg *log.Logger, atRev int64) (modified, created revision, ver int64, err error) {
 	if ki.isEmpty() {
-		lg.Panic(
+		lg.Panicw(
 			"'get' got an unexpected empty keyIndex",
 			zap.String("key", string(ki.key)),
 		)
@@ -154,9 +155,9 @@ func (ki *keyIndex) get(lg *zap.Logger, atRev int64) (modified, created revision
 // since returns revisions since the given rev. Only the revision with the
 // largest sub revision will be returned if multiple revisions have the same
 // main revision.
-func (ki *keyIndex) since(lg *zap.Logger, rev int64) []revision {
+func (ki *keyIndex) since(lg *log.Logger, rev int64) []revision {
 	if ki.isEmpty() {
-		lg.Panic(
+		lg.Panicw(
 			"'since' got an unexpected empty keyIndex",
 			zap.String("key", string(ki.key)),
 		)
@@ -198,9 +199,9 @@ func (ki *keyIndex) since(lg *zap.Logger, rev int64) []revision {
 // revision than the given atRev except the largest one (If the largest one is
 // a tombstone, it will not be kept).
 // If a generation becomes empty during compaction, it will be removed.
-func (ki *keyIndex) compact(lg *zap.Logger, atRev int64, available map[revision]struct{}) {
+func (ki *keyIndex) compact(lg *log.Logger, atRev int64, available map[revision]struct{}) {
 	if ki.isEmpty() {
-		lg.Panic(
+		lg.Panicw(
 			"'compact' got an unexpected empty keyIndex",
 			zap.String("key", string(ki.key)),
 		)

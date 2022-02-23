@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/api7/gopkg/pkg/log"
 	"github.com/google/btree"
 	"github.com/k3s-io/kine/pkg/server"
 	"go.uber.org/zap"
@@ -35,7 +36,7 @@ type btreeCache struct {
 	sync.RWMutex
 	currentRevision int64
 	index           index
-	logger          *zap.Logger
+	logger          *log.Logger
 	tree            *btree.BTree
 	events          *list.List
 	watcherHub      map[string]map[*watcher]struct{}
@@ -64,7 +65,7 @@ func (i *item) Less(j btree.Item) bool {
 // the b-tree.
 // Note this implementation is thread-safe. So feel free to use it among
 // different goroutines.
-func NewBTreeCache(logger *zap.Logger) server.Backend {
+func NewBTreeCache(logger *log.Logger) server.Backend {
 	return &btreeCache{
 		currentRevision: 1,
 		logger:          logger,

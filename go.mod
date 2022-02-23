@@ -3,6 +3,7 @@ module github.com/api7/etcd-adapter
 go 1.16
 
 require (
+	github.com/api7/gopkg v0.1.2 // indirect
 	github.com/google/btree v1.0.1
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/hot123s/dsn v0.0.2

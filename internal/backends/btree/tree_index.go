@@ -18,6 +18,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/api7/gopkg/pkg/log"
 	"github.com/google/btree"
 	"go.uber.org/zap"
 )
@@ -61,10 +62,10 @@ func (p pointInTimeKeys) Swap(i, j int) {
 type treeIndex struct {
 	sync.RWMutex
 	tree *btree.BTree
-	lg   *zap.Logger
+	lg   *log.Logger
 }
 
-func newTreeIndex(lg *zap.Logger) index {
+func newTreeIndex(lg *log.Logger) index {
 	return &treeIndex{
 		tree: btree.New(32),
 		lg:   lg,
