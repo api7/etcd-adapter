@@ -40,7 +40,7 @@ var rootCmd = &cobra.Command{
 	Short: "The bridge between etcd protocol and other storage backends.",
 	Run: func(cmd *cobra.Command, args []string) {
 		// initialize logger
-		logger, err := log.NewLogger(log.WithLogLevel("debug"))
+		logger, err := log.NewLogger()
 
 		// initialize configuration
 		err = config.Init(configFile, logger)
