@@ -5,6 +5,9 @@ server:
 #   cert: /path/to/file.pem
 #   key: /path/to/file.pem
 
+log:
+  level: warn
+
 datasource:
   type: mysql
   mysql:

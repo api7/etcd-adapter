@@ -1,7 +1,9 @@
 package config
 
 import (
-	"github.com/api7/gopkg/pkg/log"
+	"strings"
+
+	loggkg "github.com/api7/gopkg/pkg/log"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
@@ -12,15 +14,18 @@ var (
 )
 
 // Init load and unmarshal config file
-func Init(configFile string, logger *log.Logger) error {
+func Init(configFile string, logger *loggkg.Logger) error {
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
 	} else {
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
 	}
+	viper.AddConfigPath("config")
 
 	// read configuration file
+	viper.SetEnvPrefix("EA")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 	err := viper.ReadInConfig()
 	if err != nil {
