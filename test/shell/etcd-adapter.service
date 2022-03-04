@@ -1,0 +1,8 @@
+[Unit]
+Description=etcd-adapter
+Conflicts=etcd-adapter.service
+After=network-online.target
+
+[Service]
+WorkingDirectory=/usr/local/etcd-adapter
+ExecStart=/usr/local/etcd-adapter/etcd-adapter
