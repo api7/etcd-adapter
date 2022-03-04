@@ -18,13 +18,13 @@
 #
 
 start_adapter() {
-  run ./etcd-adapter
+  run systemctl start etcd-adapter
   [ "$status" -eq 0 ]
   sleep "$1"
 }
 
 stop_adapter() {
-  run pkill etcd-adapter
+  run systemctl stop etcd-adapter
   [ "$status" -eq 0 ]
   sleep "$1"
 }
@@ -34,10 +34,30 @@ stop_adapter() {
 @test "Build etcd-adapter" {
   run go build -o ./etcd-adapter ./main.go
   [ "$status" -eq 0 ]
+
+  mkdir -p /usr/local/etcd-adapter
+  cp ./etcd-adapter /usr/local/etcd-adapter
+  cp ./test/shell/etcd-adapter.service /usr/lib/systemd/system/etcd-adapter.service
+  run systemctl daemon-reload
+  [ "$status" -eq 0 ]
 }
 
 #1
 @test "Run etcd-adapter" {
   start_adapter 1
   stop_adapter 0
+}
+
+#post
+@test "Clean environment" {
+  # stop dashboard service
+  stop_adapter 0
+
+  # clean configure and log files
+  rm -rf /usr/local/etcd-adapter
+  rm /usr/lib/systemd/system/etcd-adapter.service
+
+  # reload systemd services
+  run systemctl daemon-reload
+  [ "$status" -eq 0 ]
 }
