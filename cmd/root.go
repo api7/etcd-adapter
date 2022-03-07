@@ -17,38 +17,65 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/api7/gopkg/pkg/log"
+	"github.com/k3s-io/kine/pkg/server"
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 
 	"github.com/api7/etcd-adapter/internal/adapter"
+	"github.com/api7/etcd-adapter/internal/backends/btree"
 	"github.com/api7/etcd-adapter/internal/backends/mysql"
+	"github.com/api7/etcd-adapter/internal/config"
 )
+
+var configFile string
 
 var rootCmd = &cobra.Command{
 	Use:   "etcd-adapter",
 	Short: "The bridge between etcd protocol and other storage backends.",
 	Run: func(cmd *cobra.Command, args []string) {
-		opts := &adapter.AdapterOptions{
-			Logger:  zap.NewExample(),
-			Backend: adapter.BackendMySQL,
-			MySQLOptions: &mysql.Options{
-				DSN: "root@tcp(127.0.0.1:3306)/apisix",
-			},
-		}
-		a := adapter.NewEtcdAdapter(opts)
+		// initialize logger
+		logger, err := log.NewLogger()
 
-		ln, err := net.Listen("tcp", "127.0.0.1:12379")
+		// initialize configuration
+		err = config.Init(configFile, logger)
+		if err != nil {
+			return
+		}
+
+		// initialize backend
+		var backend server.Backend
+		switch config.Config.DataSource.Type {
+		case "mysql":
+			mysqlConfig := config.Config.DataSource.MySQL
+			backend, err = mysql.NewMySQLCache(context.TODO(), &mysql.Options{
+				DSN: fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", mysqlConfig.Username, mysqlConfig.Password, mysqlConfig.Host, mysqlConfig.Port, mysqlConfig.Database),
+			})
+
+			if err != nil {
+				logger.Panic("failed to create mysql backend: ", err)
+				return
+			}
+		default:
+			backend = btree.NewBTreeCache(logger)
+		}
+
+		// bootstrap etcd adapter
+		adapter := adapter.NewEtcdAdapter(backend, logger)
+
+		ln, err := net.Listen("tcp", net.JoinHostPort(config.Config.Server.Host, config.Config.Server.Port))
 		if err != nil {
 			panic(err)
 		}
 		go func() {
-			if err := a.Serve(context.Background(), ln); err != nil {
-				panic(err)
+			if err := adapter.Serve(context.Background(), ln); err != nil {
+				logger.Panic(err)
+				return
 			}
 		}()
 
@@ -58,18 +85,27 @@ var rootCmd = &cobra.Command{
 
 		select {
 		case <-quit:
-			err := a.Shutdown(context.TODO())
+			err := adapter.Shutdown(context.TODO())
 			if err != nil {
-				opts.Logger.Error("An error occurred while exiting.", zap.Error(err))
+				logger.Error("An error occurred while exiting: ", err)
 				return
 			}
-			opts.Logger.Info("See you next time!")
+			err = logger.Sync()
+			if err != nil {
+				logger.Error("An error occurred while exiting: ", err)
+				return
+			}
+			logger.Info("See you next time!")
 		}
 	},
 }
 
 // Execute bootstrap root command.
 func Execute() {
+	// declare flags
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "config file")
+
+	// execute root command
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
