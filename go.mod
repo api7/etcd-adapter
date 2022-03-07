@@ -11,9 +11,14 @@ require (
 	github.com/spf13/cobra v1.3.0
 	github.com/stretchr/testify v1.7.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20201229170055-e5319fda7802
+	go.etcd.io/etcd v3.3.27+incompatible // indirect
 	go.etcd.io/etcd/api/v3 v3.5.2
 	go.etcd.io/etcd/client/v3 v3.5.2
 	go.uber.org/zap v1.19.1
-	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d
+	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	google.golang.org/grpc v1.42.0
+)
+
+replace (
+	go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738 => go.etcd.io/etcd v3.3.27+incompatible
 )
