@@ -30,6 +30,8 @@ import (
 	"github.com/api7/etcd-adapter/internal/adapter"
 	"github.com/api7/etcd-adapter/internal/backends/btree"
 	"github.com/api7/etcd-adapter/internal/backends/mysql"
+	"github.com/api7/etcd-adapter/internal/backends/pgsql"
+	"github.com/api7/etcd-adapter/internal/backends/sqlite"
 	"github.com/api7/etcd-adapter/internal/config"
 )
 
@@ -59,6 +61,26 @@ var rootCmd = &cobra.Command{
 
 			if err != nil {
 				logger.Panic("failed to create mysql backend: ", err)
+				return
+			}
+		case "pgsql":
+			pgsqlConfig := config.Config.DataSource.PgSQL
+			backend, err = pgsql.NewPgSQLCache(context.TODO(), &pgsql.Options{
+				DSN: fmt.Sprintf("%s:%s@%s:%s/%s?sslmode=disable", pgsqlConfig.Username, pgsqlConfig.Password, pgsqlConfig.Host, pgsqlConfig.Port, pgsqlConfig.Database),
+			})
+
+			if err != nil {
+				logger.Panic("failed to create pgsql backend: ", err)
+				return
+			}
+		case "sqlite":
+			sqliteConfig := config.Config.DataSource.SQLite
+			backend, err = sqlite.NewSQLiteCache(context.TODO(), &sqlite.Options{
+				DSN: fmt.Sprintf("%s?_journal=WAL&cache=shared", sqliteConfig.File),
+			})
+
+			if err != nil {
+				logger.Panic("failed to create sqlite backend: ", err)
 				return
 			}
 		default:
