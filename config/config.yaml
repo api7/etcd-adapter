@@ -8,11 +8,26 @@ server:
 log:
   level: warn
 
-datasource:
-  type: mysql
-  mysql:
-    host: 127.0.0.1
-    port: 3306
-    username: root
-    password:
-    database: apisix
+datasource:                   # Data source related settings
+                              # if not configured then a btree-based in-memory cache
+                              # is used by default.
+
+# type: sqlite                # Specify the data source type: mysql, pgsql, sqlite
+# mysql:                      # MySQL section: You need to configure the following
+#   host: 127.0.0.1           # when you use MySQL as data source.
+#   port: 5432                # This includes the host, port, username, password
+#   username: root            # and database name.
+#   password:
+#   database: apisix
+
+# pgsql:                      # PostgreSQL section: You need to configure the following
+#   host: 127.0.0.1           # when you use PostgreSQL as data source.
+#   port: 5432                # This includes the database, address, port, username,
+#   username: postgres        # password and database name.
+#   password:                 # Note that the database with ssl mode is not yet supported.
+#   database: apisix
+
+# sqlite:                     # SQLite section: You need to configure the following
+#   file: ./etcd-adapter.db   # when you use SQLite as data source.
+                              # This includes the database file path.
+                              # Note that the database with auth is not yet supported.
