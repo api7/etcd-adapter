@@ -20,6 +20,4 @@ require (
 	google.golang.org/grpc v1.42.0
 )
 
-replace (
-	go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738 => go.etcd.io/etcd v3.3.27+incompatible
-)
+replace go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738 => go.etcd.io/etcd v3.3.27+incompatible
