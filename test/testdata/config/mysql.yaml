@@ -1,0 +1,15 @@
+server:
+  host: 127.0.0.1
+  port: 12379
+
+log:
+  level: warn
+
+datasource:
+  type: mysql
+  mysql:
+    host: 172.20.4.4
+    port: 3306
+    username: root
+    password:
+    database: apisix
