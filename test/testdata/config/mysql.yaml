@@ -2,9 +2,6 @@ server:
   host: 127.0.0.1
   port: 12379
 
-log:
-  level: warn
-
 datasource:
   type: mysql
   mysql:
