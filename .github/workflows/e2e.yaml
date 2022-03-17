@@ -35,7 +35,9 @@ jobs:
 
       - name: Run test cases
         working-directory: ./test/e2e
-        run: ginkgo -r
+        run: |
+          go mod download
+          ginkgo -r
 
       - name: Run tmate debugger
         if: ${{ failure() }}
