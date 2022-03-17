@@ -1,8 +1,10 @@
 package base
 
 import (
+	"errors"
 	"os/exec"
 	"path/filepath"
+	"time"
 )
 
 // RunETCDAdapter start an etcd adapter instance
@@ -14,5 +16,23 @@ func RunETCDAdapter(config string) (*exec.Cmd, error) {
 		return nil, err
 	}
 
-	return c, nil
+	// Determine if the ETCD Adapter started successfully by
+	// checking HTTP accessibility
+	// The default will retry 5 times, HTTP timeout (1s) time with
+	// waiting time (1s) not more than 10 seconds
+	var remainRetries = 5
+	for {
+		if remainRetries == 0 {
+			return nil, errors.New("exceeds the number of run check retries")
+		}
+		resp, err := httpClient.R().Get("http://" + DefaultAddress)
+		if err != nil {
+			continue
+		}
+		if resp.StatusCode() == 404 {
+			return c, nil
+		}
+		remainRetries--
+		time.Sleep(time.Second)
+	}
 }
