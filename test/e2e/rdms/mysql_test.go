@@ -2,11 +2,8 @@ package rdms_test
 
 import (
 	"context"
-	"os/exec"
 	"path/filepath"
-	"time"
 
-	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -15,27 +12,14 @@ import (
 )
 
 var (
-	configFile, _      = filepath.Abs("../../testdata/config/mysql.yaml")
-	httpClient         = resty.New().SetTimeout(time.Second)
-	etcdClient         *clientv3.Client
-	etcdAdapterProcess *exec.Cmd
+	mysqlConfigFile, _ = filepath.Abs("../../testdata/config/mysql.yaml")
 )
 
 var _ = Describe("MySQL datasource", func() {
 	It("Run ETCD Adapter", func() {
 		var err error
-		etcdAdapterProcess, err = base.RunETCDAdapter(configFile)
+		etcdAdapterProcess, err = base.RunETCDAdapter(mysqlConfigFile)
 		Expect(err).To(BeNil())
-		for {
-			resp, err := httpClient.R().Get("http://127.0.0.1:12379")
-			if err != nil {
-				continue
-			}
-			if resp.StatusCode() == 404 {
-				break
-			}
-			time.Sleep(time.Second)
-		}
 	})
 
 	It("Connecting to ETCD Adapter", func() {
