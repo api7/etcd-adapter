@@ -2,6 +2,7 @@ package base
 
 import (
 	"errors"
+	"net/http"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -25,11 +26,13 @@ func RunETCDAdapter(config string) (*exec.Cmd, error) {
 		if remainRetries == 0 {
 			return nil, errors.New("exceeds the number of run check retries")
 		}
-		resp, err := httpClient.R().Get("http://" + DefaultAddress)
+		client := &http.Client{Timeout: time.Second}
+		resp, err := client.Get("http://" + DefaultAddress)
+
 		if err != nil {
 			continue
 		}
-		if resp.StatusCode() == 404 {
+		if resp.StatusCode == 404 {
 			return c, nil
 		}
 		remainRetries--
