@@ -1,20 +1,21 @@
 package server_test
 
 import (
+	"github.com/gavv/httpexpect/v2"
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	"github.com/tidwall/gjson"
 
 	"github.com/api7/etcd-adapter/test/e2e/base"
 )
 
 var _ = Describe("HTTP", func() {
-	It("Get version", func() {
-		resp, err := base.GetHTTPClient().R().Get("http://" + base.DefaultAddress + "/version")
-		Expect(err).To(BeNil())
+	e := httpexpect.New(GinkgoT(), "http://"+base.DefaultAddress)
 
-		json := gjson.ParseBytes(resp.Body())
-		Expect(json.Get("etcdserver").String()).To(Equal("3.5.0-pre"))
-		Expect(json.Get("etcdcluster").String()).To(Equal("3.5.0"))
+	It("Get version", func() {
+		resp := e.GET("/version").Expect()
+		resp.Status(200)
+		resp.JSON().
+			Object().
+			ValueEqual("etcdserver", "3.5.0").
+			ValueEqual("etcdcluster", "3.5.0")
 	})
 })

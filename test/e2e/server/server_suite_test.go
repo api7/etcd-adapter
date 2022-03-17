@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/gavv/httpexpect/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -14,6 +15,7 @@ import (
 var (
 	serverConfigFile, _ = filepath.Abs("../../testdata/config/server.yaml")
 	etcdAdapterProcess  *exec.Cmd
+	expect              *httpexpect.Expect
 )
 
 func TestServer(t *testing.T) {
