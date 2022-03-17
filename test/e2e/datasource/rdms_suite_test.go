@@ -1,4 +1,4 @@
-package rdms_test
+package datasource_test
 
 import (
 	"os/exec"
@@ -16,5 +16,5 @@ var (
 
 func TestRDMS(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "RDMS Suite")
+	RunSpecs(t, "Data Source Suite")
 }

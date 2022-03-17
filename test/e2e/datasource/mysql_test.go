@@ -1,4 +1,4 @@
-package rdms_test
+package datasource_test
 
 import (
 	"context"
