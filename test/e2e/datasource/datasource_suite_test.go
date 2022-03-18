@@ -13,23 +13,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package base
+package datasource_test
 
 import (
-	"time"
+	"os/exec"
+	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// NewETCDClient create an ETCD client for testing.
-func NewETCDClient() (*clientv3.Client, error) {
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{DefaultAddress},
-		DialTimeout: 5 * time.Second,
-	})
-	if err != nil {
-		return nil, err
-	}
+var (
+	etcdClient         *clientv3.Client
+	etcdAdapterProcess *exec.Cmd
+)
 
-	return cli, nil
+func TestDataSource(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Data Source Suite")
 }
