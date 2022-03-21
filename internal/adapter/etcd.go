@@ -217,8 +217,9 @@ func (a *adapter) handleDeleteEvent(ctx context.Context, ev *Event) {
 }
 
 func (a *adapter) showVersion(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_, err := w.Write([]byte(`{"etcdserver":"3.5.0-pre","etcdcluster":"3.5.0"}`))
+	_, err := w.Write([]byte(`{"etcdserver":"3.5.0","etcdcluster":"3.5.0"}`))
 	if err != nil {
 		a.logger.Warn("failed to send version info",
 			zap.Error(err),
