@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/api7/gopkg/pkg/log"
 	gatewayruntime "github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/soheilhy/cmux"
 	"github.com/tmc/grpc-websocket-proxy/wsproxy"
@@ -55,7 +56,7 @@ func (a *adapter) Serve(ctx context.Context, l net.Listener) error {
 		grpc.KeepaliveParams(kp),
 	)
 	a.grpcSrv = grpcSrv
-	a.bridge.Register(grpcSrv)
+	a.etcdserver.Register(grpcSrv)
 
 	if gwmux, err := a.registerGateway(l.Addr().String()); err != nil {
 		return err
@@ -82,8 +83,10 @@ func (a *adapter) Serve(ctx context.Context, l net.Listener) error {
 	go a.watchEvents(a.ctx)
 
 	go func() {
-		if err := a.httpSrv.Serve(httpl); err != nil && !strings.Contains(err.Error(), "mux: listener closed") {
-			a.logger.Error("http server serve failure",
+		if err := a.httpSrv.Serve(httpl); err != nil &&
+			!strings.Contains(err.Error(), "mux: listener closed") &&
+			!strings.Contains(err.Error(), "mux: server closed") {
+			log.Error("http server serve failure",
 				zap.Error(err),
 			)
 		}
@@ -91,7 +94,7 @@ func (a *adapter) Serve(ctx context.Context, l net.Listener) error {
 
 	go func() {
 		if err := grpcSrv.Serve(grpcl); err != nil {
-			a.logger.Error("grpc server serve failure",
+			log.Error("grpc server serve failure",
 				zap.Error(err),
 			)
 		}
@@ -117,7 +120,7 @@ func (a *adapter) Shutdown(ctx context.Context) error {
 // registerGateway registers a gRPC gateway server for etcd adapter, as some components
 // might not support gRPC protocol, it's better to support the HTTP Restful protocol.
 func (a *adapter) registerGateway(addr string) (*gatewayruntime.ServeMux, error) {
-	a.logger.Info("register grpc gateway")
+	log.Info("register grpc gateway")
 	grpcConn, err := grpc.DialContext(a.ctx, addr,
 		grpc.WithInsecure(),
 	)
@@ -134,7 +137,7 @@ func (a *adapter) registerGateway(addr string) (*gatewayruntime.ServeMux, error)
 	go func() {
 		<-a.ctx.Done()
 		if err := grpcConn.Close(); err != nil {
-			a.logger.Error("failed to close local gateway grpc conn",
+			log.Error("failed to close local gateway grpc conn",
 				zap.Error(err),
 			)
 		}

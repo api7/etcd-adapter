@@ -1,18 +1,18 @@
 server:
-  host: 127.0.0.1
-  port: 12379
+  host: 0.0.0.0
+  port: 2379
 # tls:
 #   cert: /path/to/file.pem
 #   key: /path/to/file.pem
 
 log:
-  level: warn
+  level: info
 
 datasource:
-  type: mysql
-  mysql:
-    host: 127.0.0.1
-    port: 3306
-    username: root
-    password:
-    database: apisix
+  type: btree # btree of mysql
+  # mysql:
+  #   host: 127.0.0.1
+  #   port: 3306
+  #   username: root
+  #   password:
+  #   database: apisix

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,6 +21,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/api7/gopkg/pkg/log"
@@ -39,42 +40,55 @@ var rootCmd = &cobra.Command{
 	Use:   "etcd-adapter",
 	Short: "The bridge between etcd protocol and other storage backends.",
 	Run: func(cmd *cobra.Command, args []string) {
-		// initialize logger
-		logger, err := log.NewLogger()
-
 		// initialize configuration
-		err = config.Init(configFile, logger)
+		err := config.Init(configFile)
 		if err != nil {
-			return
+			dief("failed to initialize configuration: %s", err)
+		}
+
+		// initialize log
+		log.DefaultLogger, err = log.NewLogger(
+			log.WithSkipFrames(3),
+			log.WithLogLevel(config.Config.Log.Level),
+		)
+		if err != nil {
+			dief("failed to initialize logging: %s", err)
 		}
 
 		// initialize backend
 		var backend server.Backend
 		switch config.Config.DataSource.Type {
-		case "mysql":
+		case config.Mysql:
 			mysqlConfig := config.Config.DataSource.MySQL
 			backend, err = mysql.NewMySQLCache(context.TODO(), &mysql.Options{
 				DSN: fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", mysqlConfig.Username, mysqlConfig.Password, mysqlConfig.Host, mysqlConfig.Port, mysqlConfig.Database),
 			})
 
 			if err != nil {
-				logger.Panic("failed to create mysql backend: ", err)
+				log.Panic("failed to create mysql backend: ", err)
 				return
 			}
+		case config.BTree:
+			backend = btree.NewBTreeCache()
 		default:
-			backend = btree.NewBTreeCache(logger)
+			log.Panic("does not support backends from ", config.Config.DataSource.Type)
+			return
 		}
 
 		// bootstrap etcd adapter
-		adapter := adapter.NewEtcdAdapter(backend, logger)
+		adapter := adapter.NewEtcdAdapter(&adapter.AdapterOptions{
+			Backend: backend,
+		})
 
+		log.Info("configuring listeners at ", config.Config.Server.Host, ":", config.Config.Server.Port, "")
 		ln, err := net.Listen("tcp", net.JoinHostPort(config.Config.Server.Host, config.Config.Server.Port))
 		if err != nil {
 			panic(err)
 		}
 		go func() {
+			log.Info("start etcd-adapter server")
 			if err := adapter.Serve(context.Background(), ln); err != nil {
-				logger.Panic(err)
+				log.Panic(err)
 				return
 			}
 		}()
@@ -83,20 +97,18 @@ var rootCmd = &cobra.Command{
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-		select {
-		case <-quit:
-			err := adapter.Shutdown(context.TODO())
-			if err != nil {
-				logger.Error("An error occurred while exiting: ", err)
-				return
-			}
-			err = logger.Sync()
-			if err != nil {
-				logger.Error("An error occurred while exiting: ", err)
-				return
-			}
-			logger.Info("See you next time!")
+		<-quit
+		err = adapter.Shutdown(context.TODO())
+		if err != nil {
+			log.Error("An error occurred while exiting: ", err)
+			return
 		}
+		err = log.DefaultLogger.Sync()
+		if err != nil {
+			log.Error("An error occurred while exiting: ", err)
+			return
+		}
+		log.Info("etcd-adapter exit")
 	},
 }
 
@@ -110,4 +122,12 @@ func Execute() {
 	if err != nil {
 		os.Exit(1)
 	}
+}
+
+func dief(template string, args ...interface{}) {
+	if !strings.HasSuffix(template, "\n") {
+		template += "\n"
+	}
+	fmt.Fprintf(os.Stderr, template, args...)
+	os.Exit(1)
 }

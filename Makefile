@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-test:
-	@go test ./...
 
 bench:
 	@go test -bench '^Benchmark' ./...

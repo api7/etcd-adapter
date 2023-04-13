@@ -36,7 +36,6 @@ type btreeCache struct {
 	sync.RWMutex
 	currentRevision int64
 	index           index
-	logger          *log.Logger
 	tree            *btree.BTree
 	events          *list.List
 	watcherHub      map[string]map[*watcher]struct{}
@@ -65,12 +64,11 @@ func (i *item) Less(j btree.Item) bool {
 // the b-tree.
 // Note this implementation is thread-safe. So feel free to use it among
 // different goroutines.
-func NewBTreeCache(logger *log.Logger) server.Backend {
+func NewBTreeCache() server.Backend {
 	return &btreeCache{
 		currentRevision: 1,
-		logger:          logger,
 		tree:            btree.New(32),
-		index:           newTreeIndex(logger),
+		index:           newTreeIndex(),
 		events:          list.New(),
 		watcherHub:      make(map[string]map[*watcher]struct{}),
 	}
@@ -340,8 +338,8 @@ func (b *btreeCache) removeWatcher(ctx context.Context, key string, w *watcher) 
 	} else {
 		b.watcherHub[key] = group
 	}
-
-	b.logger.Info("removed a watcher",
+	close(w.ch)
+	log.Info("removed a watcher",
 		zap.String("key", key),
 	)
 }
