@@ -13,7 +13,11 @@
 # limitations under the License.
 #
 
+# contianer image registry
 REGISTRY ?="api7"
+
+# e2e
+E2E_FOCUS ?=""
 
 .PHONY: test
 test:
@@ -40,3 +44,7 @@ build:
 .PHONY: build-image
 build-image:
 	@docker build -t $(REGISTRY)/etcd-adapter:dev .
+
+.PHONY: e2e-test
+e2e-test: build build-image
+	cd test/e2e && go mod download && ginkgo -r --focus=$(E2E_FOCUS)
