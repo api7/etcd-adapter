@@ -13,12 +13,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package server_test
+package apisix_test
 
 import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/gavv/httpexpect/v2"
 	. "github.com/onsi/ginkgo/v2"
@@ -41,10 +42,24 @@ func TestServer(t *testing.T) {
 var _ = BeforeSuite(func() {
 	var err error
 	etcdAdapterProcess, err = base.RunETCDAdapter(serverConfigFile)
+	expect = httpexpect.New(GinkgoT(), "http://127.0.0.1:9080")
+
 	Expect(err).To(BeNil())
+
+	cmd := exec.Command("docker-compose", "-f", "../../testdata/apisix-adapter.docker-compose.yaml", "up", "-d")
+	err = cmd.Run()
+	Expect(err).NotTo(HaveOccurred())
+	httpexpect.New(GinkgoT(), "http://127.0.0.1:9080").GET("").
+		WithRetryPolicy(httpexpect.RetryAllErrors).
+		WithRetryDelay(200*time.Millisecond, 10*time.Second).
+		WithMaxRetries(10).
+		Expect().Status(404)
 })
 
 var _ = AfterSuite(func() {
-	err := etcdAdapterProcess.Process.Kill()
+	cmd := exec.Command("docker-compose", "-f", "../../testdata/apisix-adapter.docker-compose.yaml", "down")
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred())
+	err = etcdAdapterProcess.Process.Kill()
 	Expect(err).To(BeNil())
 })
