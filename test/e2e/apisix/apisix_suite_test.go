@@ -13,24 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package server_test
+package apisix_test
 
 import (
 	"os/exec"
-	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/gavv/httpexpect/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/api7/etcd-adapter/test/e2e/base"
-)
-
-var (
-	serverConfigFile, _ = filepath.Abs("../../testdata/config/server.yaml")
-	etcdAdapterProcess  *exec.Cmd
-	expect              *httpexpect.Expect
 )
 
 func TestServer(t *testing.T) {
@@ -39,12 +31,24 @@ func TestServer(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	var err error
-	etcdAdapterProcess, err = base.RunETCDAdapter(serverConfigFile)
-	Expect(err).To(BeNil())
+	cmd := exec.Command("docker-compose", "-f", "../../testdata/apisix-adapter.docker-compose.yaml", "up", "-d")
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred())
+	httpexpect.New(GinkgoT(), "http://127.0.0.1:9080").GET("").
+		WithRetryPolicy(httpexpect.RetryAllErrors).
+		WithRetryDelay(200*time.Millisecond, 2*time.Second).
+		WithMaxRetries(6).
+		Expect().Status(404)
+
+	httpexpect.New(GinkgoT(), "http://127.0.0.1:12379").GET("").
+		WithRetryPolicy(httpexpect.RetryAllErrors).
+		WithRetryDelay(200*time.Millisecond, 2*time.Second).
+		WithMaxRetries(6).
+		Expect().Status(404)
 })
 
 var _ = AfterSuite(func() {
-	err := etcdAdapterProcess.Process.Kill()
-	Expect(err).To(BeNil())
+	cmd := exec.Command("docker-compose", "-f", "../../testdata/apisix-adapter.docker-compose.yaml", "down")
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred())
 })

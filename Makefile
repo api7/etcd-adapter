@@ -13,12 +13,30 @@
 # limitations under the License.
 #
 
+REGISTRY ?="api7"
 
+.PHONY: test
+test:
+	@go test ./...
+
+.PHONY: bench
 bench:
 	@go test -bench '^Benchmark' ./...
 
+.PHONY: gofmt
 gofmt:
 	@find . -name "*.go" | xargs gofmt -w
 
+.PHONY: lint
 lint:
 	@golangci-lint run
+
+.PHONY: build
+build:
+	go build \
+		-o etcd-adapter \
+		main.go
+
+.PHONY: build-image
+build-image:
+	@docker build -t $(REGISTRY)/etcd-adapter:dev .

@@ -2,15 +2,13 @@ package etcdserver
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	"github.com/api7/gopkg/pkg/log"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
+	"go.uber.org/zap"
 )
-
-// explicit interface check
-var _ etcdserverpb.KVServer = (*EtcdServer)(nil)
 
 func (k *EtcdServer) Range(ctx context.Context, r *etcdserverpb.RangeRequest) (*etcdserverpb.RangeResponse, error) {
 	var rev int64
@@ -67,10 +65,12 @@ func (k *EtcdServer) Put(ctx context.Context, r *etcdserverpb.PutRequest) (*etcd
 
 	if kv != nil {
 		revision, _, _, rerr := k.backend.Update(ctx, key, r.Value, kv.ModRevision, 0)
+		log.Debugw("update", zap.String("key", key), zap.String("value", string(r.Value)), zap.Int64("revision", revision), zap.Error(rerr))
 		err = rerr
 		rev = revision
 	} else {
 		revision, rerr := k.backend.Create(ctx, key, r.Value, 0)
+		log.Debugw("create", zap.String("key", key), zap.String("value", string(r.Value)), zap.Int64("revision", revision), zap.Error(rerr))
 		err = rerr
 		rev = revision
 	}
@@ -79,20 +79,4 @@ func (k *EtcdServer) Put(ctx context.Context, r *etcdserverpb.PutRequest) (*etcd
 			Revision: rev,
 		},
 	}, err
-}
-
-func (k *EtcdServer) DeleteRange(ctx context.Context, r *etcdserverpb.DeleteRangeRequest) (*etcdserverpb.DeleteRangeResponse, error) {
-	return nil, fmt.Errorf("delete is not supported")
-}
-
-func (k *EtcdServer) Txn(ctx context.Context, r *etcdserverpb.TxnRequest) (*etcdserverpb.TxnResponse, error) {
-	return nil, fmt.Errorf("delete is not supported")
-}
-
-func (k *EtcdServer) Compact(ctx context.Context, r *etcdserverpb.CompactionRequest) (*etcdserverpb.CompactionResponse, error) {
-	return &etcdserverpb.CompactionResponse{
-		Header: &etcdserverpb.ResponseHeader{
-			Revision: r.Revision,
-		},
-	}, nil
 }

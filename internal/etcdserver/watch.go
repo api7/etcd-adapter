@@ -61,6 +61,7 @@ type watcher struct {
 func (w *watcher) Start() error {
 	for {
 		msg, err := w.stream.Recv()
+		log.Debugw("watch recv", zap.Any("request", msg), zap.Error(err))
 		if err == io.EOF {
 			return nil
 		}
@@ -108,7 +109,7 @@ func (w *watcher) WatchableBackend(ctx context.Context, watchID int64, key strin
 		if len(events) == 0 {
 			break
 		}
-
+		log.Debugw("WATCH SEND", zap.Int64("watch_id", watchID), zap.String("key", key), zap.Any("events", events))
 		if err := w.stream.Send(&etcdserverpb.WatchResponse{
 			Header:  txnHeader(events[len(events)-1].KV.ModRevision),
 			WatchId: watchID,
@@ -120,7 +121,7 @@ func (w *watcher) WatchableBackend(ctx context.Context, watchID int64, key strin
 		}
 	}
 	w.Cancel(watchID, nil)
-	log.Debug("WATCH CLOSE", zap.String("key", key), zap.Int64("id", watchID))
+	log.Debugw("WATCH CLOSE", zap.String("key", key), zap.Int64("id", watchID))
 }
 
 func toEvents(events ...*server.Event) []*mvccpb.Event {

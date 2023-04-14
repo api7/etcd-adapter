@@ -339,7 +339,7 @@ func (b *btreeCache) removeWatcher(ctx context.Context, key string, w *watcher) 
 		b.watcherHub[key] = group
 	}
 	close(w.ch)
-	log.Info("removed a watcher",
+	log.Debug("removed a watcher",
 		zap.String("key", key),
 	)
 }

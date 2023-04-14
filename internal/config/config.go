@@ -20,7 +20,7 @@ func Init(configFile string) error {
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
 	}
-	viper.AddConfigPath("config")
+	viper.AddConfigPath("conf")
 
 	// read configuration file
 	viper.SetEnvPrefix("EA")
