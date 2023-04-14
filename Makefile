@@ -19,13 +19,13 @@ REGISTRY ?="api7"
 # e2e
 E2E_FOCUS ?=""
 
-.PHONY: test
-test:
+.PHONY: unit-test
+unit-test:
 	@go test ./...
 
 .PHONY: bench
 bench:
-	@go test -bench '^Benchmark' ./...
+	@go test -run=none -bench=Benchmark ./...
 
 .PHONY: gofmt
 gofmt:
