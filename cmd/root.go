@@ -27,6 +27,7 @@ import (
 	"github.com/api7/gopkg/pkg/log"
 	"github.com/k3s-io/kine/pkg/server"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/api7/etcd-adapter/internal/adapter"
 	"github.com/api7/etcd-adapter/internal/backends/btree"
@@ -56,6 +57,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// initialize backend
+		log.Infow("using backends type", zap.String("datasources", string(config.Config.DataSource.Type)))
 		var backend server.Backend
 		switch config.Config.DataSource.Type {
 		case config.Mysql:
@@ -65,14 +67,12 @@ var rootCmd = &cobra.Command{
 			})
 
 			if err != nil {
-				log.Panic("failed to create mysql backend: ", err)
-				return
+				dief("failed to create mysql backend, err: %s", err)
 			}
 		case config.BTree:
 			backend = btree.NewBTreeCache()
 		default:
-			log.Panic("does not support backends from ", config.Config.DataSource.Type)
-			return
+			dief("does not support backends from %s", config.Config.DataSource.Type)
 		}
 
 		// bootstrap etcd adapter
@@ -83,13 +83,13 @@ var rootCmd = &cobra.Command{
 		log.Info("configuring listeners at ", config.Config.Server.Host, ":", config.Config.Server.Port, "")
 		ln, err := net.Listen("tcp", net.JoinHostPort(config.Config.Server.Host, config.Config.Server.Port))
 		if err != nil {
-			panic(err)
+			dief("failed create listenners, err:", err)
+
 		}
 		go func() {
 			log.Info("start etcd-adapter server")
 			if err := adapter.Serve(context.Background(), ln); err != nil {
-				log.Panic(err)
-				return
+				dief("failed to start etcd-adapter server, err:", err)
 			}
 		}()
 
