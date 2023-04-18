@@ -29,10 +29,10 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/api7/etcd-adapter/internal/adapter"
-	"github.com/api7/etcd-adapter/internal/backends/btree"
-	"github.com/api7/etcd-adapter/internal/backends/mysql"
-	"github.com/api7/etcd-adapter/internal/config"
+	"github.com/api7/etcd-adapter/pkg/adapter"
+	"github.com/api7/etcd-adapter/pkg/backends/btree"
+	"github.com/api7/etcd-adapter/pkg/backends/mysql"
+	"github.com/api7/etcd-adapter/pkg/config"
 )
 
 var configFile string

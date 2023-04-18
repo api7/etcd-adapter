@@ -6,8 +6,8 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/api7/etcd-adapter/internal/backends/btree"
-	"github.com/api7/etcd-adapter/internal/etcdserver"
+	"github.com/api7/etcd-adapter/pkg/backends/btree"
+	"github.com/api7/etcd-adapter/pkg/etcdserver"
 	"github.com/api7/gopkg/pkg/log"
 	"github.com/k3s-io/kine/pkg/server"
 	"go.uber.org/zap"
