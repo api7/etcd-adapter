@@ -62,13 +62,11 @@ func (p pointInTimeKeys) Swap(i, j int) {
 type treeIndex struct {
 	sync.RWMutex
 	tree *btree.BTree
-	lg   *log.Logger
 }
 
-func newTreeIndex(lg *log.Logger) index {
+func newTreeIndex() index {
 	return &treeIndex{
 		tree: btree.New(32),
-		lg:   lg,
 	}
 }
 
@@ -79,12 +77,12 @@ func (ti *treeIndex) Put(key []byte, rev revision) {
 	defer ti.Unlock()
 	item := ti.tree.Get(keyi)
 	if item == nil {
-		keyi.put(ti.lg, rev.main, rev.sub)
+		keyi.put(log.DefaultLogger, rev.main, rev.sub)
 		ti.tree.ReplaceOrInsert(keyi)
 		return
 	}
 	okeyi := item.(*keyIndex)
-	okeyi.put(ti.lg, rev.main, rev.sub)
+	okeyi.put(log.DefaultLogger, rev.main, rev.sub)
 }
 
 func (ti *treeIndex) Get(key []byte, atRev int64) (modified, created revision, ver int64, err error) {
@@ -94,7 +92,7 @@ func (ti *treeIndex) Get(key []byte, atRev int64) (modified, created revision, v
 	if keyi = ti.keyIndex(keyi); keyi == nil {
 		return revision{}, revision{}, 0, ErrRevisionNotFound
 	}
-	return keyi.get(ti.lg, atRev)
+	return keyi.get(log.DefaultLogger, atRev)
 }
 
 func (ti *treeIndex) KeyIndex(keyi *keyIndex) *keyIndex {
@@ -136,7 +134,7 @@ func (ti *treeIndex) Revisions(key, end []byte, atRev int64, limit int) (revs []
 		return []revision{rev}, 1
 	}
 	ti.visit(key, end, func(ki *keyIndex) bool {
-		if rev, _, _, err := ki.get(ti.lg, atRev); err == nil {
+		if rev, _, _, err := ki.get(log.DefaultLogger, atRev); err == nil {
 			if limit <= 0 || len(revs) < limit {
 				revs = append(revs, rev)
 			}
@@ -157,7 +155,7 @@ func (ti *treeIndex) CountRevisions(key, end []byte, atRev int64) int {
 	}
 	total := 0
 	ti.visit(key, end, func(ki *keyIndex) bool {
-		if _, _, _, err := ki.get(ti.lg, atRev); err == nil {
+		if _, _, _, err := ki.get(log.DefaultLogger, atRev); err == nil {
 			total++
 		}
 		return true
@@ -174,7 +172,7 @@ func (ti *treeIndex) Range(key, end []byte, atRev int64) (keys [][]byte, revs []
 		return [][]byte{key}, []revision{rev}
 	}
 	ti.visit(key, end, func(ki *keyIndex) bool {
-		if rev, _, _, err := ki.get(ti.lg, atRev); err == nil {
+		if rev, _, _, err := ki.get(log.DefaultLogger, atRev); err == nil {
 			revs = append(revs, rev)
 			keys = append(keys, ki.key)
 		}
@@ -194,7 +192,7 @@ func (ti *treeIndex) Tombstone(key []byte, rev revision) error {
 	}
 
 	ki := item.(*keyIndex)
-	return ki.tombstone(ti.lg, rev.main, rev.sub)
+	return ki.tombstone(log.DefaultLogger, rev.main, rev.sub)
 }
 
 // RangeSince returns all revisions from key(including) to end(excluding)
@@ -212,7 +210,7 @@ func (ti *treeIndex) RangeSince(key, end []byte, rev int64) []revision {
 			return nil
 		}
 		keyi = item.(*keyIndex)
-		return keyi.since(ti.lg, rev)
+		return keyi.since(log.DefaultLogger, rev)
 	}
 
 	endi := &keyIndex{key: end}
@@ -222,7 +220,7 @@ func (ti *treeIndex) RangeSince(key, end []byte, rev int64) []revision {
 			return false
 		}
 		curKeyi := item.(*keyIndex)
-		revs = append(revs, curKeyi.since(ti.lg, rev)...)
+		revs = append(revs, curKeyi.since(log.DefaultLogger, rev)...)
 		return true
 	})
 	sort.Sort(revisions(revs))
@@ -232,7 +230,7 @@ func (ti *treeIndex) RangeSince(key, end []byte, rev int64) []revision {
 
 func (ti *treeIndex) Compact(rev int64) map[revision]struct{} {
 	available := make(map[revision]struct{})
-	ti.lg.Info("compact tree index", zap.Int64("revision", rev))
+	log.DefaultLogger.Info("compact tree index", zap.Int64("revision", rev))
 	ti.Lock()
 	clone := ti.tree.Clone()
 	ti.Unlock()
@@ -242,11 +240,11 @@ func (ti *treeIndex) Compact(rev int64) map[revision]struct{} {
 		//Lock is needed here to prevent modification to the keyIndex while
 		//compaction is going on or revision added to empty before deletion
 		ti.Lock()
-		keyi.compact(ti.lg, rev, available)
+		keyi.compact(log.DefaultLogger, rev, available)
 		if keyi.isEmpty() {
 			item := ti.tree.Delete(keyi)
 			if item == nil {
-				ti.lg.Panic("failed to delete during compaction")
+				log.DefaultLogger.Panic("failed to delete during compaction")
 			}
 		}
 		ti.Unlock()
@@ -312,7 +310,7 @@ func (ti *treeIndex) RangeSinceAll(key, end []byte, rev int64) pointInTimeKeys {
 			return nil
 		}
 		keyi = item.(*keyIndex)
-		for _, rev := range keyi.since(ti.lg, rev) {
+		for _, rev := range keyi.since(log.DefaultLogger, rev) {
 			_, createRev, _, err := ti.Get(keyi.key, rev.main)
 			if err != nil {
 				// Should not happen
@@ -333,8 +331,8 @@ func (ti *treeIndex) RangeSinceAll(key, end []byte, rev int64) pointInTimeKeys {
 			return false
 		}
 		curKeyi := item.(*keyIndex)
-		//revs = append(revs, curKeyi.since(ti.lg, rev)...)
-		for _, rev := range curKeyi.since(ti.lg, rev) {
+		//revs = append(revs, curKeyi.since(log.DefaultLogger, rev)...)
+		for _, rev := range curKeyi.since(log.DefaultLogger, rev) {
 			_, createRev, _, err := ti.Get(curKeyi.key, rev.main)
 			if err != nil {
 				// Should not happen

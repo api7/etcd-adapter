@@ -33,11 +33,11 @@ func TestShowVersion(t *testing.T) {
 	a.showVersion(w, nil)
 
 	assert.Equal(t, http.StatusOK, w.Code, "checking status code")
-	assert.Equal(t, "{\"etcdserver\":\"3.5.0-pre\",\"etcdcluster\":\"3.5.0\"}", w.Body.String())
+	assert.Equal(t, "{\"etcdserver\":\"3.5.0\",\"etcdcluster\":\"3.5.0\"}", w.Body.String())
 }
 
 func TestEtcdAdapter(t *testing.T) {
-	a := NewEtcdAdapter(nil)
+	a := NewEtcdAdapter(nil).(*adapter)
 
 	ln, err := nettest.NewLocalListener("tcp")
 	assert.Nil(t, err, "checking listener creating error")
@@ -134,7 +134,7 @@ func TestEtcdAdapterWatch(t *testing.T) {
 		},
 	}
 
-	a := NewEtcdAdapter(nil)
+	a := NewEtcdAdapter(nil).(*adapter)
 
 	ln, err := nettest.NewLocalListener("tcp")
 	assert.Nil(t, err, "checking listener creating error")

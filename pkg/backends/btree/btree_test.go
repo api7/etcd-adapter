@@ -23,7 +23,6 @@ import (
 
 	"github.com/k3s-io/kine/pkg/server"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -41,7 +40,7 @@ func generateString(n int) string {
 }
 
 func TestBTreeCacheSimpleOperations(t *testing.T) {
-	backend := NewBTreeCache(zap.NewExample())
+	backend := NewBTreeCache()
 	assert.Nil(t, backend.Start(context.Background()), "checking error")
 	rev, kv, err := backend.Get(context.Background(), "/apisix/routes/123", 13)
 	assert.Equal(t, rev, int64(1), "checking revision")
@@ -84,7 +83,7 @@ func TestBTreeCacheSimpleOperations(t *testing.T) {
 }
 
 func TestBTreeCacheUpdate(t *testing.T) {
-	backend := NewBTreeCache(zap.NewExample())
+	backend := NewBTreeCache()
 	rev, kv, ok, err := backend.Update(context.Background(), "/apisix/routes/123", []byte("{zxcvfda}"), 5, 123)
 	assert.Equal(t, rev, int64(1), "checking revision")
 	assert.Nil(t, kv, "checking kv")
@@ -155,7 +154,7 @@ func TestBTreeCacheUpdate(t *testing.T) {
 }
 
 func TestBTreeCacheDelete(t *testing.T) {
-	backend := NewBTreeCache(zap.NewExample())
+	backend := NewBTreeCache()
 	rev, kv, ok, err := backend.Delete(context.Background(), "/apisix/routes/123", 5)
 	assert.Equal(t, rev, int64(1), "checking revision")
 	assert.Nil(t, kv, "checking kv")
@@ -221,7 +220,7 @@ func TestBTreeCacheDelete(t *testing.T) {
 }
 
 func TestBTreeCacheCount(t *testing.T) {
-	backend := NewBTreeCache(zap.NewExample())
+	backend := NewBTreeCache()
 
 	rev, err := backend.Create(context.Background(), "/apisix/routes/123", []byte("{zxcvfda}"), 123)
 	assert.Equal(t, rev, int64(2), "checking revision")
@@ -256,7 +255,7 @@ func TestBTreeCacheCount(t *testing.T) {
 }
 
 func TestBTreeCacheList(t *testing.T) {
-	backend := NewBTreeCache(zap.NewExample())
+	backend := NewBTreeCache()
 
 	rev, err := backend.Create(context.Background(), "/apisix/routes/123", []byte("{zxcvfda}"), 123)
 	assert.Equal(t, rev, int64(2), "checking revision")
@@ -319,7 +318,7 @@ func TestBTreeCacheList(t *testing.T) {
 }
 
 func TestBTreeCacheWatch(t *testing.T) {
-	backend := NewBTreeCache(zap.NewExample())
+	backend := NewBTreeCache()
 	assert.Nil(t, backend.Start(context.Background()))
 
 	rev, err := backend.Create(context.Background(), "/apisix/routes/123", []byte("{zxcvfda}"), 123)
@@ -418,7 +417,7 @@ func BenchmarkBTreeCacheGet(b *testing.B) {
 		bc := bc
 		b.Run(bc.name, func(b *testing.B) {
 			data := bc.prepareData()
-			c := NewBTreeCache(zap.NewExample())
+			c := NewBTreeCache()
 			for _, item := range data {
 				_, err := c.Create(context.Background(), item, []byte(item), 0)
 				assert.Nil(b, err, "checking create error")
@@ -473,7 +472,7 @@ func BenchmarkBTreeCacheCreate(b *testing.B) {
 		bc := bc
 		b.Run(bc.name, func(b *testing.B) {
 			data := bc.prepareData()
-			c := NewBTreeCache(zap.NewExample())
+			c := NewBTreeCache()
 			for _, item := range data {
 				_, err := c.Create(context.Background(), item, []byte(item), 0)
 				assert.Nil(b, err, "checking create error")
@@ -522,7 +521,7 @@ func BenchmarkBTreeCacheList(b *testing.B) {
 		bc := bc
 		b.Run(bc.name, func(b *testing.B) {
 			data := bc.prepareData()
-			c := NewBTreeCache(zap.NewExample())
+			c := NewBTreeCache()
 			for _, item := range data {
 				_, err := c.Create(context.Background(), item, []byte(item), 0)
 				assert.Nil(b, err, "checking create error")
@@ -576,7 +575,7 @@ func BenchmarkBTreeCacheDelete(b *testing.B) {
 		bc := bc
 		b.Run(bc.name, func(b *testing.B) {
 			data := bc.prepareData()
-			c := NewBTreeCache(zap.NewExample())
+			c := NewBTreeCache()
 			for _, item := range data {
 				_, err := c.Create(context.Background(), item, []byte(item), 0)
 				assert.Nil(b, err, "checking create error")

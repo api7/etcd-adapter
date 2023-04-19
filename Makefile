@@ -13,14 +13,38 @@
 # limitations under the License.
 #
 
-test:
+# contianer image registry
+REGISTRY ?="api7"
+
+# e2e
+E2E_FOCUS ?=""
+
+.PHONY: unit-test
+unit-test:
 	@go test ./...
 
+.PHONY: bench
 bench:
-	@go test -bench '^Benchmark' ./...
+	@go test -run=none -bench=Benchmark ./...
 
+.PHONY: gofmt
 gofmt:
 	@find . -name "*.go" | xargs gofmt -w
 
+.PHONY: lint
 lint:
 	@golangci-lint run
+
+.PHONY: build
+build:
+	go build \
+		-o etcd-adapter \
+		main.go
+
+.PHONY: build-image
+build-image:
+	@docker build -t $(REGISTRY)/etcd-adapter:dev .
+
+.PHONY: e2e-test
+e2e-test: build build-image
+	cd test/e2e && go mod download && ginkgo -r --focus=$(E2E_FOCUS)

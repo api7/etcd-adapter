@@ -1,5 +1,12 @@
 package config
 
+type datasourceType string
+
+const (
+	Mysql datasourceType = "mysql"
+	BTree datasourceType = "btree"
+)
+
 type server struct {
 	Host string    `mapstructure:"host"`
 	Port string    `mapstructure:"port"`
@@ -24,8 +31,8 @@ type mysqlConfig struct {
 }
 
 type datasource struct {
-	Type  string      `mapstructure:"type"`
-	MySQL mysqlConfig `mapstructure:"mysql"`
+	Type  datasourceType `mapstructure:"type"`
+	MySQL mysqlConfig    `mapstructure:"mysql"`
 }
 
 type config struct {

@@ -1,11 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 
-	loggkg "github.com/api7/gopkg/pkg/log"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 var (
@@ -14,14 +13,14 @@ var (
 )
 
 // Init load and unmarshal config file
-func Init(configFile string, logger *loggkg.Logger) error {
+func Init(configFile string) error {
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
 	} else {
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
 	}
-	viper.AddConfigPath("config")
+	viper.AddConfigPath("conf")
 
 	// read configuration file
 	viper.SetEnvPrefix("EA")
@@ -29,16 +28,12 @@ func Init(configFile string, logger *loggkg.Logger) error {
 	viper.AutomaticEnv()
 	err := viper.ReadInConfig()
 	if err != nil {
-		logger.Errorw("Config file load failed", zap.Error(err))
-		return err
+		return fmt.Errorf("config file load failed, err %s", err.Error())
 	}
-	logger.Infow("Config file load successful", zap.String("path", viper.ConfigFileUsed()))
-
 	// parse configuration
 	err = viper.Unmarshal(&Config)
 	if err != nil {
-		logger.Errorw("Config file unmarshal failed", zap.Error(err))
-		return err
+		return fmt.Errorf("config file unmarshal failed, err %s", err.Error())
 	}
 
 	return nil
