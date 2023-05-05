@@ -11,10 +11,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	DELETE_RANGE_LIMIT = 100000
-)
-
 func (k *EtcdServer) Range(ctx context.Context, r *etcdserverpb.RangeRequest) (*etcdserverpb.RangeResponse, error) {
 	var rev int64
 	etcdKvs := []*mvccpb.KeyValue{}
