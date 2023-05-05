@@ -258,7 +258,10 @@ func (b *btreeCache) Delete(ctx context.Context, key string, atRev int64) (int64
 	if err := b.index.Tombstone([]byte(key), rev); err != nil {
 		return b.currentRevision, nil, false, err
 	}
-	b.makeEvent(nil, kv, true)
+	b.makeEvent(&server.KeyValue{
+		Key:         key,
+		ModRevision: b.currentRevision,
+	}, kv, true)
 
 	return b.currentRevision, kv, true, nil
 }
@@ -353,7 +356,7 @@ func (b *btreeCache) makeEvent(kv, prevKV *server.KeyValue, deleteEvent bool) {
 			Delete: true,
 			// Kine uses KV field to get the mod revision, so even for delete event,
 			// add the kv field.
-			KV:     prevKV,
+			KV:     kv,
 			PrevKV: prevKV,
 		}
 	} else {

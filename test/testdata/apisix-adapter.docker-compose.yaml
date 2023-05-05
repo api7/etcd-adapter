@@ -24,6 +24,14 @@ services:
       - "12379:12379/tcp"
     networks:
       - apisix
+  
+  httpbin:
+    image: kennethreitz/httpbin
+    restart: always
+    ports:
+      - "8080:80/tcp"
+    networks:
+      - apisix
 
 networks:
   apisix:
