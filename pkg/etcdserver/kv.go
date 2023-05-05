@@ -2,12 +2,17 @@ package etcdserver
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/api7/gopkg/pkg/log"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
 	"go.uber.org/zap"
+)
+
+const (
+	DELETE_RANGE_LIMIT = 100000
 )
 
 func (k *EtcdServer) Range(ctx context.Context, r *etcdserverpb.RangeRequest) (*etcdserverpb.RangeResponse, error) {
@@ -79,4 +84,20 @@ func (k *EtcdServer) Put(ctx context.Context, r *etcdserverpb.PutRequest) (*etcd
 			Revision: rev,
 		},
 	}, err
+}
+
+// Only one deletion is supported, and range deletion is not supported.
+// TODO: support delete range
+func (k *EtcdServer) DeleteRange(ctx context.Context, r *etcdserverpb.DeleteRangeRequest) (*etcdserverpb.DeleteRangeResponse, error) {
+	if r.RangeEnd != nil {
+		return nil, fmt.Errorf("delete range is not supported")
+	}
+	_, prevKV, _ := k.backend.Get(ctx, string(r.Key), 0)
+	rev, _, _, _ := k.backend.Delete(ctx, string(r.Key), prevKV.ModRevision)
+	return &etcdserverpb.DeleteRangeResponse{
+		Header: &etcdserverpb.ResponseHeader{
+			Revision: rev,
+		},
+		Deleted: 1,
+	}, nil
 }

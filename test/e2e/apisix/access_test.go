@@ -33,7 +33,7 @@ var _ = Describe("APISIX", func() {
     "upstream": {
         "type": "roundrobin",
         "nodes": {
-            "postman-echo.com:80": 1
+            "httpbin:80": 1
         }
     }
 }`
@@ -43,13 +43,14 @@ var _ = Describe("APISIX", func() {
     "upstream": {
         "type": "roundrobin",
         "nodes": {
-            "postman-echo.com:80": 1
+            "httpbin:80": 1
         }
     }
 }`
 	)
 
 	It("create route for the apisix, and access it", func() {
+		// create route
 		admin.PUT("/apisix/admin/routes/1").
 			WithHeader("X-API-KEY", "edd1c9f034335f136f87ad84b625c8f1").
 			WithBytes([]byte(createRoute1)).
@@ -81,5 +82,26 @@ var _ = Describe("APISIX", func() {
 
 		e.GET("/headers").Expect().Status(404)
 		e.GET("/get").Expect().Status(200)
+	})
+
+	It("delete route for the apisix, and access it", func() {
+		// create route
+		admin.PUT("/apisix/admin/routes/1").
+			WithHeader("X-API-KEY", "edd1c9f034335f136f87ad84b625c8f1").
+			WithBytes([]byte(createRoute1)).
+			Expect().Status(201)
+
+		time.Sleep(2 * time.Second)
+
+		e.GET("/headers").Expect().Status(200)
+
+		// delete route
+		admin.DELETE("/apisix/admin/routes/1").
+			WithHeader("X-API-KEY", "edd1c9f034335f136f87ad84b625c8f1").
+			Expect().Status(200)
+
+		time.Sleep(2 * time.Second)
+
+		e.GET("/headers").Expect().Status(404)
 	})
 })
