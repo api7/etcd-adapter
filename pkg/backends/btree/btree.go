@@ -66,7 +66,7 @@ func (i *item) Less(j btree.Item) bool {
 // different goroutines.
 func NewBTreeCache() server.Backend {
 	return &btreeCache{
-		currentRevision: 1,
+		currentRevision: time.Now().Unix(),
 		tree:            btree.New(32),
 		index:           newTreeIndex(),
 		events:          list.New(),
