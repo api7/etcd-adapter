@@ -41,6 +41,12 @@ type btreeCache struct {
 	watcherHub      map[string]map[*watcher]struct{}
 }
 
+func (b *btreeCache) Get(ctx context.Context, key, rangeEnd string, limit, revision int64) (int64, *server.KeyValue, error) {
+	b.RLock()
+	defer b.RUnlock()
+	return b.getLocked(ctx, key, revision)
+}
+
 type watcher struct {
 	startRev int64
 	ch       chan []*server.Event
@@ -77,12 +83,6 @@ func NewBTreeCache() server.Backend {
 func (b *btreeCache) Start(ctx context.Context) error {
 	go b.sendEvents(ctx)
 	return nil
-}
-
-func (b *btreeCache) Get(ctx context.Context, key string, revision int64) (int64, *server.KeyValue, error) {
-	b.RLock()
-	defer b.RUnlock()
-	return b.getLocked(ctx, key, revision)
 }
 
 func (b *btreeCache) getLocked(_ context.Context, key string, revision int64) (int64, *server.KeyValue, error) {

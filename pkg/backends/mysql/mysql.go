@@ -39,7 +39,7 @@ type mysqlCache struct {
 // mysql connection pool.
 func NewMySQLCache(ctx context.Context, options *Options) (server.Backend, error) {
 	dsn := options.DSN
-	backend, err := mysqldriver.New(ctx, dsn, tls.Config{}, options.ConnPool)
+	backend, err := mysqldriver.New(ctx, dsn, tls.Config{}, options.ConnPool, nil)
 	if err != nil {
 		return nil, err
 	}

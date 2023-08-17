@@ -42,7 +42,7 @@ func generateString(n int) string {
 func TestBTreeCacheSimpleOperations(t *testing.T) {
 	backend := NewBTreeCache()
 	assert.Nil(t, backend.Start(context.Background()), "checking error")
-	rev, kv, err := backend.Get(context.Background(), "/apisix/routes/123", 13)
+	rev, kv, err := backend.Get(context.Background(), "/apisix/routes/123", "0", 0, 13)
 	assert.Equal(t, rev, int64(1), "checking revision")
 	assert.Nil(t, kv, "checking kv")
 	assert.Nil(t, err, "checking error")
@@ -57,7 +57,7 @@ func TestBTreeCacheSimpleOperations(t *testing.T) {
 	assert.Equal(t, server.ErrKeyExists, err, "checking error")
 
 	// read it
-	rev, kv, err = backend.Get(context.Background(), "/apisix/routes/123", 13)
+	rev, kv, err = backend.Get(context.Background(), "/apisix/routes/123", "0", 0, 13)
 	assert.Equal(t, rev, int64(2), "checking revision")
 	assert.Equal(t, &server.KeyValue{
 		Key:            "/apisix/routes/123",
@@ -129,7 +129,7 @@ func TestBTreeCacheUpdate(t *testing.T) {
 	assert.Nil(t, err, "checking error")
 
 	// read old version
-	rev, kv, err = backend.Get(context.Background(), "/apisix/routes/123", 2)
+	rev, kv, err = backend.Get(context.Background(), "/apisix/routes/123", "0", 0, 2)
 	assert.Equal(t, rev, int64(3), "checking revision")
 	assert.Equal(t, &server.KeyValue{
 		Key:            "/apisix/routes/123",
@@ -141,7 +141,7 @@ func TestBTreeCacheUpdate(t *testing.T) {
 	assert.Nil(t, err, "checking error")
 
 	// read new version
-	rev, kv, err = backend.Get(context.Background(), "/apisix/routes/123", 0)
+	rev, kv, err = backend.Get(context.Background(), "/apisix/routes/123", "0", 0, 0)
 	assert.Equal(t, rev, int64(3), "checking revision")
 	assert.Equal(t, &server.KeyValue{
 		Key:            "/apisix/routes/123",
@@ -213,7 +213,7 @@ func TestBTreeCacheDelete(t *testing.T) {
 	assert.Nil(t, err, "checking error")
 
 	// read it.
-	rev, kv, err = backend.Get(context.Background(), "/apisix/routes/123", 0)
+	rev, kv, err = backend.Get(context.Background(), "/apisix/routes/123", "0", 0, 0)
 	assert.Equal(t, rev, int64(3), "checking revision")
 	assert.Nil(t, kv, "checking kv")
 	assert.Nil(t, err, "checking error")
@@ -424,7 +424,7 @@ func BenchmarkBTreeCacheGet(b *testing.B) {
 			}
 			b.ResetTimer()
 			for _, item := range data {
-				_, kv, err := c.Get(context.Background(), item, 0)
+				_, kv, err := c.Get(context.Background(), item, "0", 0, 0)
 				assert.Equal(b, kv.Key, item, "checking kv")
 				assert.Nil(b, err, "checking get error")
 			}
