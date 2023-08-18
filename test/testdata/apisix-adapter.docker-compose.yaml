@@ -29,7 +29,7 @@ services:
     image: kennethreitz/httpbin
     restart: always
     ports:
-      - "80:80/tcp"
+      - "8080:80/tcp"
     networks:
       - apisix
 
