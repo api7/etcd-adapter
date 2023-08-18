@@ -17,6 +17,7 @@ package apisix_test
 
 import (
 	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -25,13 +26,17 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+var (
+	DockerComposeFile, _ = filepath.Abs("../../testdata/apisix-adapter.docker-compose.yaml")
+)
+
 func TestServer(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Server Suite")
 }
 
 var _ = BeforeSuite(func() {
-	cmd := exec.Command("docker-compose", "-f", "../../testdata/apisix-adapter.docker-compose.yaml", "up", "-d")
+	cmd := exec.Command("docker-compose", "-f", DockerComposeFile, "up", "-d")
 	err := cmd.Run()
 	Expect(err).NotTo(HaveOccurred())
 	httpexpect.New(GinkgoT(), "http://127.0.0.1:9080").GET("").
@@ -48,7 +53,7 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	cmd := exec.Command("docker-compose", "-f", "../../testdata/apisix-adapter.docker-compose.yaml", "down")
+	cmd := exec.Command("docker-compose", "-f", DockerComposeFile, "down")
 	err := cmd.Run()
 	Expect(err).NotTo(HaveOccurred())
 })

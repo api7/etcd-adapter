@@ -12,8 +12,7 @@ deployment:
   etcd:
     host:                           # it's possible to define multiple etcd hosts addresses of the same etcd cluster.
       - "http://etcd-adapter:12379"     # multiple etcd address, if your etcd cluster enables TLS, please use https scheme,
-    use_grpc: true                  # if your etcd version >= 3.4, you can set it to true
-    timeout: 3600
+    timeout: 60
 
 plugins:                          # plugin list (sorted by priority)
   - real-ip                        # priority: 23000

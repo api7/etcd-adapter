@@ -16,10 +16,12 @@ limitations under the License.
 package apisix_test
 
 import (
+	"os/exec"
 	"time"
 
 	"github.com/gavv/httpexpect/v2"
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("APISIX", func() {
@@ -33,7 +35,7 @@ var _ = Describe("APISIX", func() {
     "upstream": {
         "type": "roundrobin",
         "nodes": {
-            "postman-echo.com:80": 1
+            "httpbin:80": 1
         }
     }
 }`
@@ -43,7 +45,7 @@ var _ = Describe("APISIX", func() {
     "upstream": {
         "type": "roundrobin",
         "nodes": {
-            "postman-echo.com:80": 1
+            "httpbin:80": 1
         }
     }
 }`
@@ -70,6 +72,37 @@ var _ = Describe("APISIX", func() {
 		time.Sleep(2 * time.Second)
 
 		e.GET("/headers").Expect().Status(200)
+
+		// update route
+		admin.PUT("/apisix/admin/routes/1").
+			WithHeader("X-API-KEY", "edd1c9f034335f136f87ad84b625c8f1").
+			WithBytes([]byte(updateRoute1)).
+			Expect().Status(201)
+
+		time.Sleep(2 * time.Second)
+
+		e.GET("/headers").Expect().Status(404)
+		e.GET("/get").Expect().Status(200)
+	})
+
+	It("after restarting the etcd-adapter, apisix still work", func() {
+		time.Sleep(5 * time.Second)
+		// create route
+		admin.PUT("/apisix/admin/routes/1").
+			WithHeader("X-API-KEY", "edd1c9f034335f136f87ad84b625c8f1").
+			WithBytes([]byte(createRoute1)).
+			Expect().Status(201)
+
+		time.Sleep(2 * time.Second)
+
+		e.GET("/headers").Expect().Status(200)
+
+		// resatr etcd-adapter
+		cmd := exec.Command("docker-compose", "-f", DockerComposeFile, "restart", "etcd-adapter")
+		err := cmd.Run()
+		Expect(err).NotTo(HaveOccurred())
+
+		time.Sleep(6 * time.Second)
 
 		// update route
 		admin.PUT("/apisix/admin/routes/1").
