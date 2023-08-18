@@ -9,7 +9,7 @@ log:
   level: info
 
 datasource:
-  type: btree # btree of mysql
+  type: btree # btree or mysql or sqlite
   # mysql:
   #   host: 127.0.0.1
   #   port: 3306

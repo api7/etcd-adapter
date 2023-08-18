@@ -3,8 +3,9 @@ package config
 type datasourceType string
 
 const (
-	Mysql datasourceType = "mysql"
-	BTree datasourceType = "btree"
+	Mysql  datasourceType = "mysql"
+	BTree  datasourceType = "btree"
+	SQLite datasourceType = "sqlite"
 )
 
 type server struct {

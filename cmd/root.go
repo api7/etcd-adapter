@@ -32,6 +32,7 @@ import (
 	"github.com/api7/etcd-adapter/pkg/adapter"
 	"github.com/api7/etcd-adapter/pkg/backends/btree"
 	"github.com/api7/etcd-adapter/pkg/backends/mysql"
+	"github.com/api7/etcd-adapter/pkg/backends/sqlite"
 	"github.com/api7/etcd-adapter/pkg/config"
 )
 
@@ -71,6 +72,14 @@ var rootCmd = &cobra.Command{
 			}
 		case config.BTree:
 			backend = btree.NewBTreeCache()
+
+		case config.SQLite:
+			backend, err = sqlite.NewSQLiteCache(context.Background(), &sqlite.Options{
+				DSN: "",
+			})
+			if err != nil {
+				dief("failed sqlite!!! ERR: %s", err)
+			}
 		default:
 			dief("does not support backends from %s", config.Config.DataSource.Type)
 		}

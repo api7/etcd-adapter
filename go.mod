@@ -7,6 +7,7 @@ require (
 	github.com/google/btree v1.1.2
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/k3s-io/kine v0.10.2
+	github.com/prometheus/client_golang v1.16.0
 	github.com/soheilhy/cmux v0.1.5
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
@@ -34,12 +35,12 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
+	github.com/mattn/go-sqlite3 v1.14.17 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.16.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.11.1 // indirect

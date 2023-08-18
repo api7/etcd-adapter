@@ -34,6 +34,8 @@ const (
 	BackendBTree = BackendKind(iota)
 	// BackendMySQL indicates the mysql-based backend.
 	BackendMySQL
+	// BackendSQLite indicates sqlite-based backend
+	BackendSQLite
 )
 
 // Event contains a bunch of entities and the type of event.
