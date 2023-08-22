@@ -30,7 +30,7 @@ func (k *EtcdServer) Range(ctx context.Context, r *etcdserverpb.RangeRequest) (*
 		}
 		rev = revision
 	} else {
-		revision, kv, err := k.backend.Get(ctx, string(r.Key), time.Now().Unix())
+		revision, kv, err := k.backend.Get(ctx, string(r.Key), "0", 0, time.Now().Unix())
 		if err != nil {
 			return nil, err
 		}
@@ -62,7 +62,7 @@ func (k *EtcdServer) Put(ctx context.Context, r *etcdserverpb.PutRequest) (*etcd
 		rev int64
 		err error
 	)
-	_, kv, _ := k.backend.Get(ctx, key, time.Now().Unix())
+	_, kv, _ := k.backend.Get(ctx, key, "0", 0, time.Now().Unix())
 
 	if kv != nil {
 		revision, _, _, rerr := k.backend.Update(ctx, key, r.Value, kv.ModRevision, 0)
@@ -88,7 +88,7 @@ func (k *EtcdServer) DeleteRange(ctx context.Context, r *etcdserverpb.DeleteRang
 	if r.RangeEnd != nil {
 		return nil, fmt.Errorf("delete range is not supported")
 	}
-	_, prevKV, _ := k.backend.Get(ctx, string(r.Key), 0)
+	_, prevKV, _ := k.backend.Get(ctx, string(r.Key), "0", 0, 0)
 	rev, _, _, _ := k.backend.Delete(ctx, string(r.Key), prevKV.ModRevision)
 	return &etcdserverpb.DeleteRangeResponse{
 		Header: &etcdserverpb.ResponseHeader{

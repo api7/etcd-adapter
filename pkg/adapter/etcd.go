@@ -153,7 +153,7 @@ func (a *adapter) handleAddEvent(ctx context.Context, ev *Event) {
 
 func (a *adapter) handleUpdateEvent(ctx context.Context, ev *Event) {
 	for {
-		rev, prevKV, err := a.backend.Get(ctx, ev.Key, 0)
+		rev, prevKV, err := a.backend.Get(ctx, ev.Key, "0", 0, 0)
 		if err != nil {
 			log.Error("failed to get object (during update event), ignore it",
 				zap.Error(err),
@@ -198,7 +198,7 @@ func (a *adapter) handleUpdateEvent(ctx context.Context, ev *Event) {
 
 func (a *adapter) handleDeleteEvent(ctx context.Context, ev *Event) {
 	for {
-		rev, prevKV, err := a.backend.Get(ctx, ev.Key, 0)
+		rev, prevKV, err := a.backend.Get(ctx, ev.Key, "0", 0, 0)
 		if err != nil {
 			log.Error("failed to get object (during delete event), ignore it",
 				zap.Error(err),
