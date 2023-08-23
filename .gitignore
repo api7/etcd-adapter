@@ -5,8 +5,11 @@
 etcd-adapter
 
 # Ignore Go Workspace
-go.work
+go.work*
 
 # Ignore Direnv
 .envrc*
+
+# Ignore SQLite DB file ..
+db
 

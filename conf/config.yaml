@@ -6,10 +6,11 @@ server:
 #   key: /path/to/file.pem
 
 log:
-  level: info
+  level: debug
 
 datasource:
-  type: btree # btree or mysql or sqlite
+  type: sqlite # btree or mysql or sqlite
+  # type: btree # btree or mysql or sqlite
   # mysql:
   #   host: 127.0.0.1
   #   port: 3306

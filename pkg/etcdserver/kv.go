@@ -3,23 +3,33 @@ package etcdserver
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"github.com/api7/gopkg/pkg/log"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
 	"go.uber.org/zap"
+	"strings"
 )
 
 func (k *EtcdServer) Range(ctx context.Context, r *etcdserverpb.RangeRequest) (*etcdserverpb.RangeResponse, error) {
 	var rev int64
 	etcdKvs := []*mvccpb.KeyValue{}
 
-	if len(r.RangeEnd) > 0 {
-
-		revision, kvs, _ := k.backend.List(ctx, string(r.Key), string(r.Key), r.Limit, time.Now().Unix())
+	//if len(r.RangeEnd) > 0 {
+	key := string(r.Key)
+	levelOfKey := len(strings.Split(key, "/"))
+	if levelOfKey == 3 {
+		key = fmt.Sprintf("%s%%", key)
+		log.Debug("TOP_LEVEL: ", key, " RANGE_END:", r.RangeEnd)
+		revision, kvs, _ := k.backend.List(ctx, key, key, r.Limit, 0)
 
 		for _, kv := range kvs {
+			// If the last char is '/' ignore it ..
+			lastChar := kv.Key[len(kv.Key)-1:]
+			log.Debug("KEY:", kv.Key, " LAST:", lastChar)
+			if lastChar == "/" {
+				log.Debug("Last Char is '/'; skipping ...")
+				continue
+			}
 			etcdKvs = append(etcdKvs, &mvccpb.KeyValue{
 				Key:            []byte(kv.Key),
 				Value:          kv.Value,
@@ -28,9 +38,12 @@ func (k *EtcdServer) Range(ctx context.Context, r *etcdserverpb.RangeRequest) (*
 				Lease:          kv.Lease,
 			})
 		}
+		// DEBUG
+		//spew.Dump(etcdKvs)
 		rev = revision
 	} else {
-		revision, kv, err := k.backend.Get(ctx, string(r.Key), "0", 0, time.Now().Unix())
+		log.Debug("KEY:", key, " LVL:", levelOfKey, " RANGE_END:", r.RangeEnd)
+		revision, kv, err := k.backend.Get(ctx, string(r.Key), "0", 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -62,7 +75,7 @@ func (k *EtcdServer) Put(ctx context.Context, r *etcdserverpb.PutRequest) (*etcd
 		rev int64
 		err error
 	)
-	_, kv, _ := k.backend.Get(ctx, key, "0", 0, time.Now().Unix())
+	_, kv, _ := k.backend.Get(ctx, key, "0", 0, 0)
 
 	if kv != nil {
 		revision, _, _, rerr := k.backend.Update(ctx, key, r.Value, kv.ModRevision, 0)

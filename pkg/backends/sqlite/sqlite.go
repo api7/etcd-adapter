@@ -2,11 +2,12 @@ package sqlite
 
 import (
 	"context"
-	"github.com/api7/gopkg/pkg/log"
 	"github.com/k3s-io/kine/pkg/drivers/generic"
 	"github.com/k3s-io/kine/pkg/drivers/sqlite"
 	"github.com/k3s-io/kine/pkg/server"
 	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
+	"os"
 )
 
 // Options contains settings for controlling the connection to MySQL.
@@ -18,6 +19,19 @@ type Options struct {
 
 type sqliteCache struct {
 	server.Backend
+}
+
+func init() {
+	// Log as JSON instead of the default ASCII formatter.
+	//log.SetFormatter(&log.JSONFormatter{})
+	log.SetFormatter(&log.TextFormatter{})
+
+	// Output to stdout instead of the default stderr
+	// Can be any io.Writer, see below for File example
+	log.SetOutput(os.Stdout)
+
+	// Only log the warning severity or above.
+	log.SetLevel(log.DebugLevel)
 }
 
 func NewSQLiteCache(ctx context.Context, options *Options) (server.Backend, error) {
