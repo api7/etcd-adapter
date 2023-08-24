@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/api7/gopkg/pkg/log"
+	"github.com/davecgh/go-spew/spew"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
 	"go.uber.org/zap"
@@ -38,11 +39,9 @@ func (k *EtcdServer) Range(ctx context.Context, r *etcdserverpb.RangeRequest) (*
 				Lease:          kv.Lease,
 			})
 		}
-		// DEBUG
-		//spew.Dump(etcdKvs)
 		rev = revision
 	} else {
-		log.Debug("KEY:", key, " LVL:", levelOfKey, " RANGE_END:", r.RangeEnd)
+		log.Debug("KEY:", key, " LVL:", levelOfKey, " RANGE_END:", string(r.RangeEnd))
 		revision, kv, err := k.backend.Get(ctx, string(r.Key), "0", 0, 0)
 		if err != nil {
 			return nil, err
@@ -58,6 +57,8 @@ func (k *EtcdServer) Range(ctx context.Context, r *etcdserverpb.RangeRequest) (*
 		}
 		rev = revision
 	}
+	// DEBUG
+	spew.Dump(etcdKvs)
 
 	return &etcdserverpb.RangeResponse{
 		Header: &etcdserverpb.ResponseHeader{
