@@ -163,10 +163,13 @@ func (a *adapter) handleUpdateEvent(ctx context.Context, ev *Event) {
 			return
 		}
 		if prevKV == nil {
-			log.Error("object not found (during update event), ignore it",
+			log.Info("object not found (during update event), ignore it",
 				zap.Int64("revision", rev),
 				zap.String("key", ev.Key),
 			)
+			// Fallback to add event when the resource isn't found
+			ev.Type = EventAdd
+			a.handleAddEvent(ctx, ev)
 			return
 		}
 		rev, prev, ok, err := a.backend.Update(ctx, ev.Key, ev.Value, prevKV.ModRevision, 0)
