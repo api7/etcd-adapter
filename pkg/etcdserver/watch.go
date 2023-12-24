@@ -105,7 +105,7 @@ func (w *watcher) HandleWatchCreateRequest(ctx context.Context, r *etcdserverpb.
 
 func (w *watcher) WatchableBackend(ctx context.Context, watchID int64, key string, revision int64) {
 	defer w.wg.Done()
-	for events := range w.backend.Watch(ctx, key, revision) {
+	for events := range w.backend.Watch(ctx, key, revision).Events {
 		if len(events) == 0 {
 			break
 		}

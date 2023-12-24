@@ -326,7 +326,7 @@ func TestBTreeCacheWatch(t *testing.T) {
 	assert.Nil(t, err, "checking error")
 
 	ctx, cancel := context.WithCancel(context.Background())
-	ch := backend.Watch(ctx, "/apisix/routes", 0)
+	ch := backend.Watch(ctx, "/apisix/routes", 0).Events
 	evs := <-ch
 	assert.Len(t, evs, 1, "checking the initial events")
 	assert.Equal(t, evs[0].Create, true)
