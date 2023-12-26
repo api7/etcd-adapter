@@ -38,6 +38,7 @@ lint:
 .PHONY: build
 build:
 	go build \
+		-tags nats \
 		-o etcd-adapter \
 		main.go
 

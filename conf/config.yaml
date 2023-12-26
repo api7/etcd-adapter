@@ -1,15 +1,15 @@
 server:
   host: 0.0.0.0
-  port: 12379
+  port: 2379
 # tls:
 #   cert: /path/to/file.pem
 #   key: /path/to/file.pem
 
 log:
-  level: info
+  level: debug
 
 datasource:
-  type: btree # btree of mysql
+  type: nats # btree or mysql or nats
   # mysql:
   #   host: 127.0.0.1
   #   port: 3306

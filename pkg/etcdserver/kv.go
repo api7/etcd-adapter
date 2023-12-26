@@ -3,8 +3,6 @@ package etcdserver
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"github.com/api7/gopkg/pkg/log"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
@@ -17,7 +15,7 @@ func (k *EtcdServer) Range(ctx context.Context, r *etcdserverpb.RangeRequest) (*
 
 	if len(r.RangeEnd) > 0 {
 
-		revision, kvs, _ := k.backend.List(ctx, string(r.Key), string(r.Key), r.Limit, time.Now().Unix())
+		revision, kvs, _ := k.backend.List(ctx, string(r.Key), string(r.Key), r.Limit, 0)
 
 		for _, kv := range kvs {
 			etcdKvs = append(etcdKvs, &mvccpb.KeyValue{
@@ -30,7 +28,7 @@ func (k *EtcdServer) Range(ctx context.Context, r *etcdserverpb.RangeRequest) (*
 		}
 		rev = revision
 	} else {
-		revision, kv, err := k.backend.Get(ctx, string(r.Key), "0", 0, time.Now().Unix())
+		revision, kv, err := k.backend.Get(ctx, string(r.Key), "0", 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -62,7 +60,7 @@ func (k *EtcdServer) Put(ctx context.Context, r *etcdserverpb.PutRequest) (*etcd
 		rev int64
 		err error
 	)
-	_, kv, _ := k.backend.Get(ctx, key, "0", 0, time.Now().Unix())
+	_, kv, _ := k.backend.Get(ctx, key, "0", 0, 0)
 
 	if kv != nil {
 		revision, _, _, rerr := k.backend.Update(ctx, key, r.Value, kv.ModRevision, 0)
