@@ -19,7 +19,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/api7/etcd-adapter/pkg/backends/nats"
-	"github.com/davecgh/go-spew/spew"
 	"net"
 	"os"
 	"os/signal"
@@ -76,7 +75,7 @@ var rootCmd = &cobra.Command{
 
 		case config.NATS:
 			//log.Errorw("", zap.String("", config.Config.DataSource.Type))
-			spew.Dump(config.Config)
+			//spew.Dump(config.Config)
 			backend, err = nats.NewNATSCache(context.Background(), &nats.Options{
 				DSN: "nats://", // This is for default embedded ..
 			})

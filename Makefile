@@ -13,6 +13,9 @@
 # limitations under the License.
 #
 
+run: build
+	@./etcd-adapter
+
 # contianer image registry
 REGISTRY ?="api7"
 
