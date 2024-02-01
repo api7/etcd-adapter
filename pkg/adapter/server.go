@@ -128,12 +128,21 @@ func (a *adapter) registerGateway(addr string) (*gatewayruntime.ServeMux, error)
 		return nil, err
 	}
 	gwmux := gatewayruntime.NewServeMux()
-	if err := etcdservergw.RegisterKVHandler(a.ctx, gwmux, grpcConn); err != nil {
-		return nil, err
+
+	handlers := []func(context.Context, *gatewayruntime.ServeMux, *grpc.ClientConn) error{
+		etcdservergw.RegisterWatchHandler,
+		etcdservergw.RegisterKVHandler,
+		etcdservergw.RegisterLeaseHandler,
+		etcdservergw.RegisterClusterHandler,
+		etcdservergw.RegisterMaintenanceHandler,
 	}
-	if err := etcdservergw.RegisterWatchHandler(a.ctx, gwmux, grpcConn); err != nil {
-		return nil, err
+
+	for i := range handlers {
+		if err := handlers[i](a.ctx, gwmux, grpcConn); err != nil {
+			return nil, err
+		}
 	}
+
 	go func() {
 		<-a.ctx.Done()
 		if err := grpcConn.Close(); err != nil {
