@@ -34,6 +34,7 @@ const (
 	BackendBTree = BackendKind(iota)
 	// BackendMySQL indicates the mysql-based backend.
 	BackendMySQL
+	BackendNATS
 )
 
 // Event contains a bunch of entities and the type of event.

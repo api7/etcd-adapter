@@ -13,6 +13,9 @@
 # limitations under the License.
 #
 
+run: build
+	@./etcd-adapter
+
 # contianer image registry
 REGISTRY ?="api7"
 
@@ -38,6 +41,7 @@ lint:
 .PHONY: build
 build:
 	go build \
+		-tags nats \
 		-o etcd-adapter \
 		main.go
 

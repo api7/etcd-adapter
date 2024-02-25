@@ -18,6 +18,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/api7/etcd-adapter/pkg/backends/nats"
 	"net"
 	"os"
 	"os/signal"
@@ -71,6 +72,17 @@ var rootCmd = &cobra.Command{
 			}
 		case config.BTree:
 			backend = btree.NewBTreeCache()
+
+		case config.NATS:
+			//log.Errorw("", zap.String("", config.Config.DataSource.Type))
+			//spew.Dump(config.Config)
+			backend, err = nats.NewNATSCache(context.Background(), &nats.Options{
+				DSN: "nats://", // This is for default embedded ..
+			})
+			if err != nil {
+				dief("failed to create nats backend, err: %s", err)
+			}
+
 		default:
 			dief("does not support backends from %s", config.Config.DataSource.Type)
 		}

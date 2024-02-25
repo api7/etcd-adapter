@@ -41,6 +41,10 @@ type btreeCache struct {
 	watcherHub      map[string]map[*watcher]struct{}
 }
 
+func (b *btreeCache) CurrentRevision(ctx context.Context) (int64, error) {
+	return b.currentRevision, nil
+}
+
 func (b *btreeCache) Get(ctx context.Context, key, rangeEnd string, limit, revision int64) (int64, *server.KeyValue, error) {
 	b.RLock()
 	defer b.RUnlock()
@@ -275,8 +279,8 @@ func (b *btreeCache) Count(_ context.Context, prefix string) (int64, int64, erro
 	keys, _ := b.index.Range([]byte(prefix), []byte(end), b.currentRevision)
 	return b.currentRevision, int64(len(keys)), nil
 }
+func (b *btreeCache) Watch(ctx context.Context, key string, startRevision int64) server.WatchResult {
 
-func (b *btreeCache) Watch(ctx context.Context, key string, startRevision int64) <-chan []*server.Event {
 	b.Lock()
 	defer b.Unlock()
 	w := &watcher{
@@ -324,7 +328,12 @@ func (b *btreeCache) Watch(ctx context.Context, key string, startRevision int64)
 			w.ch <- events
 		}
 	}
-	return w.ch
+
+	return server.WatchResult{
+		CurrentRevision: w.startRev,
+		CompactRevision: w.startRev,
+		Events:          w.ch,
+	}
 }
 
 func (b *btreeCache) removeWatcher(ctx context.Context, key string, w *watcher) {

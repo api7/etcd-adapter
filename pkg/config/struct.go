@@ -5,6 +5,7 @@ type datasourceType string
 const (
 	Mysql datasourceType = "mysql"
 	BTree datasourceType = "btree"
+	NATS  datasourceType = "nats" // New NATS + Jetstream; embedded by default with nats://
 )
 
 type server struct {

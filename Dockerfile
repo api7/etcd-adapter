@@ -5,8 +5,7 @@ ARG ENABLE_PROXY=false
 WORKDIR /build
 COPY go.* ./
 
-RUN if [ "$ENABLE_PROXY" = "true" ] ; then go env -w GOPROXY=https://goproxy.cn,direct ; fi \
-    && go mod download
+RUN go mod download
 
 COPY . .
 RUN make build
