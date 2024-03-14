@@ -1,0 +1,40 @@
+name: "deploy-etcd-adapter"
+
+on:
+  push:
+    branches:
+      - deploy
+
+jobs:
+    deploy-ecr:
+        name: "deploy etcd adapter on ecr"
+        runs-on: buildjet-2vcpu-ubuntu-2204
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v4
+    
+          - name: Set up Docker Buildx
+            uses: docker/setup-buildx-action@v3
+    
+          - name: Configure AWS Credentials
+            uses: aws-actions/configure-aws-credentials@v4
+            with:
+              role-to-assume: arn:aws:iam::284983278621:role/devops_cd
+              role-session-name: devops_deploy
+              aws-region: eu-central-1
+          - name: Login to Amazon ECR
+            id: login-ecr
+            uses: aws-actions/amazon-ecr-login@v2
+
+          - name: Build and push
+            uses: docker/build-push-action@v5
+            env:
+              ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+              ECR_REPOSITORY: etcd-adapter
+              IMAGE_TAG: ${{ github.sha }}
+            with:
+              context: ./
+              file: Dockerfile
+              push: true
+              tags: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }},${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+
