@@ -3,7 +3,7 @@ name: "deploy-etcd-adapter"
 on:
   push:
     branches:
-      - deploy
+      - main
 
 jobs:
     deploy-ecr:
