@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-
 jobs:
     deploy-ecr:
         name: "deploy etcd adapter on ecr"
@@ -19,8 +18,8 @@ jobs:
           - name: Configure AWS Credentials
             uses: aws-actions/configure-aws-credentials@v4
             with:
-              role-to-assume: arn:aws:iam::284983278621:role/devops_cd
-              role-session-name: devops_deploy
+              role-to-assume: arn:aws:iam::284983278621:role/devops_etcd_adapter_cd
+              role-session-name: devops_etcd_adapter_cd
               aws-region: eu-central-1
               
           - name: Login to Amazon ECR
@@ -31,7 +30,7 @@ jobs:
             uses: docker/build-push-action@v5
             env:
               ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-              ECR_REPOSITORY: etcd-adapter
+              ECR_REPOSITORY: etcd-apisix-main-adapter
               IMAGE_TAG: ${{ github.sha }}
             with:
               context: ./
