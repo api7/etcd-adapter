@@ -1,3 +1,10 @@
 .idea
 
 etcd-adapter
+
+# Ignore Go Workspace
+go.work*
+
+# Ignore Direnv
+.envrc*
+
