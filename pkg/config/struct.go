@@ -5,6 +5,7 @@ type datasourceType string
 const (
 	Mysql datasourceType = "mysql"
 	BTree datasourceType = "btree"
+	FDB   datasourceType = "fdb"
 )
 
 type server struct {
@@ -33,10 +34,16 @@ type mysqlConfig struct {
 type datasource struct {
 	Type  datasourceType `mapstructure:"type"`
 	MySQL mysqlConfig    `mapstructure:"mysql"`
+	FDB   fdbConfig      `mapstructure:"fdb"`
 }
 
 type config struct {
 	Server     server     `mapstructure:"server"`
 	Log        log        `mapstructure:"log"`
 	DataSource datasource `mapstructure:"datasource"`
+}
+
+type fdbConfig struct {
+	ClusterFile string `yaml:"cluster_file"`
+	Directory   string `yaml:"directory"`
 }

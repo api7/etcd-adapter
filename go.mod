@@ -21,6 +21,7 @@ require (
 
 require (
 	github.com/Rican7/retry v0.3.1 // indirect
+	github.com/apple/foundationdb/bindings/go v0.0.0-20240515141816-262c6fe778ad // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect

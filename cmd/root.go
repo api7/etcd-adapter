@@ -31,6 +31,7 @@ import (
 
 	"github.com/api7/etcd-adapter/pkg/adapter"
 	"github.com/api7/etcd-adapter/pkg/backends/btree"
+	"github.com/api7/etcd-adapter/pkg/backends/fdb"
 	"github.com/api7/etcd-adapter/pkg/backends/mysql"
 	"github.com/api7/etcd-adapter/pkg/config"
 )
@@ -71,6 +72,15 @@ var rootCmd = &cobra.Command{
 			}
 		case config.BTree:
 			backend = btree.NewBTreeCache()
+		case config.FDB:
+			fdbConfig := config.Config.DataSource.FDB
+			backend, err = fdb.NewFDBCache(context.TODO(), &fdb.Options{
+				ClusterFile: fdbConfig.ClusterFile,
+				Directory:   strings.Split(fdbConfig.Directory, "/"),
+			})
+			if err != nil {
+				dief("failed to create FDB backend, err: %s", err)
+			}
 		default:
 			dief("does not support backends from %s", config.Config.DataSource.Type)
 		}
