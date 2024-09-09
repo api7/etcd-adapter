@@ -9,10 +9,14 @@ log:
   level: info
 
 datasource:
-  type: btree # btree of mysql
+  type: btree # btree of mysql or fdb
   # mysql:
   #   host: 127.0.0.1
   #   port: 3306
   #   username: root
   #   password:
   #   database: apisix
+
+  # fdb:
+  #   cluster_file: ""
+  #   directory: ""
