@@ -158,24 +158,25 @@ func TestBTreeCacheUpdate(t *testing.T) {
 
 func TestBTreeCacheDelete(t *testing.T) {
 	backend := NewBTreeCache()
-	rev, kv, ok, err := backend.Delete(context.Background(), "/apisix/routes/123", 5)
-	assert.Equal(t, rev, int64(1), "checking revision")
+	rev, kv, ok, err := backend.Delete(context.Background(), "/apisix/routes/123", math.MaxInt64)
+	assert.InDelta(t, time.Now().UnixMilli(), rev, 1000, "checking revision")
 	assert.Nil(t, kv, "checking kv")
 	assert.Equal(t, false, ok, "checking success flag")
 	assert.Nil(t, err, "checking error")
-
+	origRev := rev
+	newRev := rev + 1
 	// create it.
 	rev, err = backend.Create(context.Background(), "/apisix/routes/123", []byte("{zxcvfda}"), 123)
-	assert.Equal(t, rev, int64(2), "checking revision")
+	assert.Equal(t, rev, int64(newRev), "checking revision")
 	assert.Nil(t, err, "checking error")
 
 	// try to delete it but failed.
-	rev, kv, ok, err = backend.Delete(context.Background(), "/apisix/routes/123", 3)
-	assert.Equal(t, rev, int64(2), "checking revision")
+	rev, kv, ok, err = backend.Delete(context.Background(), "/apisix/routes/123", math.MaxInt64)
+	assert.Equal(t, rev, int64(newRev), "checking revision")
 	assert.Equal(t, &server.KeyValue{
 		Key:            "/apisix/routes/123",
-		CreateRevision: 2,
-		ModRevision:    2,
+		CreateRevision: newRev,
+		ModRevision:    newRev,
 		Value:          []byte("{zxcvfda}"),
 		Lease:          123,
 	}, kv, "checking kv")
@@ -183,19 +184,19 @@ func TestBTreeCacheDelete(t *testing.T) {
 	assert.Nil(t, err, "checking error")
 
 	// try to delete it but failed.
-	rev, kv, ok, err = backend.Delete(context.Background(), "/apisix/routes/123", 1)
-	assert.Equal(t, rev, int64(2), "checking revision")
+	rev, kv, ok, err = backend.Delete(context.Background(), "/apisix/routes/123", origRev)
+	assert.Equal(t, rev, int64(newRev), "checking revision")
 	assert.Nil(t, kv, "checking kv")
 	assert.Equal(t, false, ok, "checking success flag")
 	assert.Nil(t, err, "checking error")
 
 	// try to delete it but failed.
-	rev, kv, ok, err = backend.Delete(context.Background(), "/apisix/routes/123", 3)
-	assert.Equal(t, rev, int64(2), "checking revision")
+	rev, kv, ok, err = backend.Delete(context.Background(), "/apisix/routes/123", newRev+1)
+	assert.Equal(t, rev, int64(newRev), "checking revision")
 	assert.Equal(t, &server.KeyValue{
 		Key:            "/apisix/routes/123",
-		CreateRevision: 2,
-		ModRevision:    2,
+		CreateRevision: newRev,
+		ModRevision:    newRev,
 		Value:          []byte("{zxcvfda}"),
 		Lease:          123,
 	}, kv, "checking kv")
@@ -203,12 +204,12 @@ func TestBTreeCacheDelete(t *testing.T) {
 	assert.Nil(t, err, "checking error")
 
 	// delete it.
-	rev, kv, ok, err = backend.Delete(context.Background(), "/apisix/routes/123", 2)
-	assert.Equal(t, rev, int64(3), "checking revision")
+	rev, kv, ok, err = backend.Delete(context.Background(), "/apisix/routes/123", newRev)
+	assert.Equal(t, rev, int64(newRev+1), "checking revision")
 	assert.Equal(t, &server.KeyValue{
 		Key:            "/apisix/routes/123",
-		CreateRevision: 2,
-		ModRevision:    2,
+		CreateRevision: newRev,
+		ModRevision:    newRev,
 		Value:          []byte("{zxcvfda}"),
 		Lease:          123,
 	}, kv, "checking kv")
@@ -217,7 +218,7 @@ func TestBTreeCacheDelete(t *testing.T) {
 
 	// read it.
 	rev, kv, err = backend.Get(context.Background(), "/apisix/routes/123", "0", 0, 0)
-	assert.Equal(t, rev, int64(3), "checking revision")
+	assert.Equal(t, rev, int64(newRev+1), "checking revision")
 	assert.Nil(t, kv, "checking kv")
 	assert.Nil(t, err, "checking error")
 }
@@ -226,33 +227,35 @@ func TestBTreeCacheCount(t *testing.T) {
 	backend := NewBTreeCache()
 
 	rev, err := backend.Create(context.Background(), "/apisix/routes/123", []byte("{zxcvfda}"), 123)
-	assert.Equal(t, rev, int64(2), "checking revision")
+	assert.InDelta(t, time.Now().UnixMilli()+1, rev, 1000, "checking revision")
 	assert.Nil(t, err, "checking error")
-
+	newRev := rev + 1
 	rev, err = backend.Create(context.Background(), "/apisix/routes/134", []byte("{zxcvfda}"), 123)
-	assert.Equal(t, rev, int64(3), "checking revision")
+	assert.Equal(t, rev, int64(newRev), "checking revision")
 	assert.Nil(t, err, "checking error")
 
+	newRev = rev + 1
 	rev, err = backend.Create(context.Background(), "/apisix/routes/1", []byte("{zxcvfda}"), 123)
-	assert.Equal(t, rev, int64(4), "checking revision")
+	assert.Equal(t, rev, int64(newRev), "checking revision")
 	assert.Nil(t, err, "checking error")
 
+	newRev = rev + 1
 	rev, err = backend.Create(context.Background(), "/apisix/upstreams/1", []byte("{zxcvfda}"), 123)
-	assert.Equal(t, rev, int64(5), "checking revision")
+	assert.Equal(t, rev, int64(newRev), "checking revision")
 	assert.Nil(t, err, "checking error")
 
 	rev, count, err := backend.Count(context.Background(), "/apisix")
-	assert.Equal(t, int64(5), rev, "checking rev")
+	assert.Equal(t, int64(newRev), rev, "checking rev")
 	assert.Equal(t, int64(4), count, "checking count")
 	assert.Nil(t, err, "checking error")
 
 	rev, count, err = backend.Count(context.Background(), "/apisix/routes")
-	assert.Equal(t, int64(5), rev, "checking rev")
+	assert.Equal(t, int64(newRev), rev, "checking rev")
 	assert.Equal(t, int64(3), count, "checking count")
 	assert.Nil(t, err, "checking error")
 
 	rev, count, err = backend.Count(context.Background(), "/apisix/upstreams")
-	assert.Equal(t, int64(5), rev, "checking rev")
+	assert.Equal(t, int64(newRev), rev, "checking rev")
 	assert.Equal(t, int64(1), count, "checking count")
 	assert.Nil(t, err, "checking error")
 }
@@ -261,59 +264,61 @@ func TestBTreeCacheList(t *testing.T) {
 	backend := NewBTreeCache()
 
 	rev, err := backend.Create(context.Background(), "/apisix/routes/123", []byte("{zxcvfda}"), 123)
-	assert.Equal(t, rev, int64(2), "checking revision")
+	assert.InDelta(t, time.Now().UnixMilli()+1, rev, 1000, "checking revision")
 	assert.Nil(t, err, "checking error")
-
+	newRev := rev + 1
 	rev, err = backend.Create(context.Background(), "/apisix/routes/134", []byte("{zxcvfda}"), 123)
-	assert.Equal(t, rev, int64(3), "checking revision")
+	assert.Equal(t, rev, int64(newRev), "checking revision")
 	assert.Nil(t, err, "checking error")
 
+	newRev = rev + 1
 	rev, err = backend.Create(context.Background(), "/apisix/routes/1", []byte("{zxcvfda}"), 123)
-	assert.Equal(t, rev, int64(4), "checking revision")
+	assert.Equal(t, rev, int64(newRev), "checking revision")
 	assert.Nil(t, err, "checking error")
 
+	newRev = rev + 1
 	rev, err = backend.Create(context.Background(), "/apisix/upstreams/1", []byte("{zxcvfda}"), 123)
-	assert.Equal(t, rev, int64(5), "checking revision")
+	assert.Equal(t, rev, int64(newRev), "checking revision")
 	assert.Nil(t, err, "checking error")
 
 	rev, kvs, err := backend.List(context.Background(), "/apisix", "/apisix", 2, 1)
-	assert.Equal(t, rev, int64(5), "checking revision")
+	assert.Equal(t, rev, int64(newRev), "checking revision")
 	assert.Len(t, kvs, 0, "checking kvs")
 	assert.Nil(t, err, "checking error")
 
 	rev, kvs, err = backend.List(context.Background(), "/apisix", "/apisix", 2, 0)
-	assert.Equal(t, rev, int64(5), "checking revision")
+	assert.Equal(t, rev, int64(newRev), "checking revision")
 	assert.Len(t, kvs, 2, "checking kvs")
 	assert.Equal(t, &server.KeyValue{
 		Key:            "/apisix/routes/1",
-		CreateRevision: 4,
-		ModRevision:    4,
+		CreateRevision: newRev - 1,
+		ModRevision:    newRev - 1,
 		Value:          []byte("{zxcvfda}"),
 		Lease:          123,
 	}, kvs[0], "checking kv")
 	assert.Equal(t, &server.KeyValue{
 		Key:            "/apisix/routes/123",
-		CreateRevision: 2,
-		ModRevision:    2,
+		CreateRevision: newRev - 3,
+		ModRevision:    newRev - 3,
 		Value:          []byte("{zxcvfda}"),
 		Lease:          123,
 	}, kvs[1], "checking kv")
 	assert.Nil(t, err, "checking error")
 
 	rev, kvs, err = backend.List(context.Background(), "/apisix", "/apisix/routes/124", 2, 0)
-	assert.Equal(t, rev, int64(5), "checking revision")
+	assert.Equal(t, rev, int64(newRev), "checking revision")
 	assert.Len(t, kvs, 2, "checking kvs")
 	assert.Equal(t, &server.KeyValue{
 		Key:            "/apisix/routes/134",
-		CreateRevision: 3,
-		ModRevision:    3,
+		CreateRevision: newRev - 2,
+		ModRevision:    newRev - 2,
 		Value:          []byte("{zxcvfda}"),
 		Lease:          123,
 	}, kvs[0], "checking kv")
 	assert.Equal(t, &server.KeyValue{
 		Key:            "/apisix/upstreams/1",
-		CreateRevision: 5,
-		ModRevision:    5,
+		CreateRevision: newRev,
+		ModRevision:    newRev,
 		Value:          []byte("{zxcvfda}"),
 		Lease:          123,
 	}, kvs[1], "checking kv")
@@ -325,7 +330,7 @@ func TestBTreeCacheWatch(t *testing.T) {
 	assert.Nil(t, backend.Start(context.Background()))
 
 	rev, err := backend.Create(context.Background(), "/apisix/routes/123", []byte("{zxcvfda}"), 123)
-	assert.Equal(t, rev, int64(2), "checking revision")
+	assert.InDelta(t, time.Now().UnixMilli()+1, rev, 1000, "checking revision")
 	assert.Nil(t, err, "checking error")
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -337,8 +342,8 @@ func TestBTreeCacheWatch(t *testing.T) {
 	assert.Nil(t, evs[0].PrevKV)
 	assert.Equal(t, evs[0].KV.Key, "/apisix/routes/123")
 	assert.Equal(t, evs[0].KV.Value, []byte("{zxcvfda}"))
-	assert.Equal(t, evs[0].KV.CreateRevision, int64(2))
-	assert.Equal(t, evs[0].KV.ModRevision, int64(2))
+	assert.Equal(t, evs[0].KV.CreateRevision, int64(rev))
+	assert.Equal(t, evs[0].KV.ModRevision, int64(rev))
 
 	lastRev := rev
 
