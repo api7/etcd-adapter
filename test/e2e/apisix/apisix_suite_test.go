@@ -31,7 +31,7 @@ func TestServer(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	cmd := exec.Command("docker-compose", "-f", "../../testdata/apisix-adapter.docker-compose.yaml", "up", "-d")
+	cmd := exec.Command("docker compose", "-f", "../../testdata/apisix-adapter.docker-compose.yaml", "up", "-d")
 	err := cmd.Run()
 	Expect(err).NotTo(HaveOccurred())
 	httpexpect.New(GinkgoT(), "http://127.0.0.1:9080").GET("").
