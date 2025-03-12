@@ -41,8 +41,3 @@ jobs:
 
       - name: Run test cases
         run: make e2e-test
-
-      - name: Run tmate debugger
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 15
