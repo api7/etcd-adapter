@@ -3,7 +3,7 @@ package etcdserver
 import (
 	"context"
 	"fmt"
-	"time"
+	"math"
 
 	"github.com/api7/gopkg/pkg/log"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
@@ -17,7 +17,7 @@ func (k *EtcdServer) Range(ctx context.Context, r *etcdserverpb.RangeRequest) (*
 
 	if len(r.RangeEnd) > 0 {
 
-		revision, kvs, _ := k.backend.List(ctx, string(r.Key), string(r.Key), r.Limit, time.Now().Unix())
+		revision, kvs, _ := k.backend.List(ctx, string(r.Key), string(r.Key), r.Limit, math.MaxInt64)
 
 		for _, kv := range kvs {
 			etcdKvs = append(etcdKvs, &mvccpb.KeyValue{
@@ -30,7 +30,7 @@ func (k *EtcdServer) Range(ctx context.Context, r *etcdserverpb.RangeRequest) (*
 		}
 		rev = revision
 	} else {
-		revision, kv, err := k.backend.Get(ctx, string(r.Key), "0", 0, time.Now().Unix())
+		revision, kv, err := k.backend.Get(ctx, string(r.Key), "0", 0, math.MaxInt64)
 		if err != nil {
 			return nil, err
 		}
@@ -62,7 +62,7 @@ func (k *EtcdServer) Put(ctx context.Context, r *etcdserverpb.PutRequest) (*etcd
 		rev int64
 		err error
 	)
-	_, kv, _ := k.backend.Get(ctx, key, "0", 0, time.Now().Unix())
+	_, kv, _ := k.backend.Get(ctx, key, "0", 0, math.MaxInt64)
 
 	if kv != nil {
 		revision, _, _, rerr := k.backend.Update(ctx, key, r.Value, kv.ModRevision, 0)
@@ -89,6 +89,14 @@ func (k *EtcdServer) DeleteRange(ctx context.Context, r *etcdserverpb.DeleteRang
 		return nil, fmt.Errorf("delete range is not supported")
 	}
 	_, prevKV, _ := k.backend.Get(ctx, string(r.Key), "0", 0, 0)
+	if prevKV == nil {
+		return &etcdserverpb.DeleteRangeResponse{
+			Header: &etcdserverpb.ResponseHeader{
+				Revision: 0,
+			},
+			Deleted: 0,
+		}, nil
+	}
 	rev, _, _, _ := k.backend.Delete(ctx, string(r.Key), prevKV.ModRevision)
 	return &etcdserverpb.DeleteRangeResponse{
 		Header: &etcdserverpb.ResponseHeader{
